@@ -1,8 +1,6 @@
 package models
 
 import (
-	"encoding/json"
-	"fmt"
 	"time"
 )
 
@@ -25,6 +23,7 @@ const (
 	BidStatusActive     = "active"
 	BidStatusWinning   = "winning"
 	BidStatusOutbid    = "outbid"
+	BidStatusWinning   = "winning"
 	BidStatusCancelled  = "cancelled"
 )
 

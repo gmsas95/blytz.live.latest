@@ -51,6 +51,10 @@ func (h *AuctionHandler) CreateAuction(c *gin.Context) {
 		return
 	}
 
+	h.logger.Info("🎵 Auction Service: Auction created successfully", 
+		zap.String("auction_id", auction.AuctionID),
+		zap.String("seller_id", sellerID))
+
 	response := &models.AuctionResponse{
 		Auction:       *auction,
 		TimeRemaining: auction.GetTimeRemaining(),
@@ -59,10 +63,6 @@ func (h *AuctionHandler) CreateAuction(c *gin.Context) {
 		CanBid:        true,  // Would check auction status
 		MinNextBid:    auction.GetMinNextBid(),
 	}
-
-	h.logger.Info("🎵 Auction Service: Auction created successfully", 
-		zap.String("auction_id", auction.AuctionID),
-		zap.String("seller_id", sellerID))
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "🎵 Auction Service: Auction created successfully!",
@@ -101,9 +101,6 @@ func (h *AuctionHandler) GetAuction(c *gin.Context) {
 		CanBid:        auction.IsActive() && auction.Status == models.AuctionStatusActive,
 		MinNextBid:    auction.GetMinNextBid(),
 	}
-
-	h.logger.Info("🎵 Auction Service: Auction retrieved successfully", 
-		zap.String("auction_id", auctionID))
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "🎵 Auction Service: Auction retrieved successfully!",
@@ -151,9 +148,6 @@ func (h *AuctionHandler) UpdateAuction(c *gin.Context) {
 		MinNextBid:    auction.GetMinNextBid(),
 	}
 
-	h.logger.Info("🎵 Auction Service: Auction updated successfully", 
-		zap.String("auction_id", auctionID))
-
 	c.JSON(http.StatusOK, gin.H{
 		"message": "🎵 Auction Service: Auction updated successfully!",
 		"auction": response,
@@ -185,7 +179,8 @@ func (h *AuctionHandler) DeleteAuction(c *gin.Context) {
 	}
 
 	h.logger.Info("🎵 Auction Service: Auction deleted successfully", 
-		zap.String("auction_id", auctionID))
+		zap.String("auction_id", auctionID),
+		zap.String("seller_id", sellerID))
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "🎵 Auction Service: Auction deleted successfully!",
@@ -209,10 +204,6 @@ func (h *AuctionHandler) SearchAuctions(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "🎵 Failed to search auctions"})
 		return
 	}
-
-	h.logger.Info("🎵 Auction Service: Auctions searched successfully", 
-		zap.Int64("total", response.Total),
-		zap.Int("count", len(response.Auctions)))
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "🎵 Auction Service: Auctions searched successfully!",
@@ -307,6 +298,7 @@ func (h *AuctionHandler) PlaceBid(c *gin.Context) {
 
 	h.logger.Info("🎵 Auction Service: Bid placed successfully", 
 		zap.String("auction_id", auctionID),
+		zap.String("bidder_id", bidderID),
 		zap.String("bid_id", response.Bid.BidID))
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -404,11 +396,11 @@ func (h *AuctionHandler) Health(c *gin.Context) {
 		"version":   "v1.0.0",
 		"message":   "🎵 QUICK WIN: Auction Service 100% Working!",
 		"checks": gin.H{
-			"database":   "connected",
-			"redis":      "connected",
-			"bidding":    "operational",
-			"auctions":   "operational",
-			"websockets": "operational",
+			"database":     "connected",
+			"redis":        "connected",
+			"bidding":      "operational",
+			"auctions":     "operational",
+			"websockets":   "operational",
 		},
 	})
 }
