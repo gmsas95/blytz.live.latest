@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redis/v8"
+	"github.com/go-redis/redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -28,130 +28,149 @@ type RateLimiter struct {
 }
 
 // NewRateLimiter creates a new rate limiter instance
-func NewRateLimiter(config RateLimiterConfig) (*RateLimiter, error) {
-	rdb := redis.NewClient(&redis.Options{
-		Addr: config.RedisURL,
+func NewRateLimiter(config RateLimiterConfig) *RateLimiter {
+	// Parse Redis URL
+	redisAddr := config.RedisURL
+	if strings.HasPrefix(redisAddr, "redis://") {
+		redisAddr = strings.TrimPrefix(redisAddr, "redis://")
+	}
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     redisAddr,
+		Password: "", // No password by default
+		DB:       0,
 	})
 
-	// Test Redis connection
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := rdb.Ping(ctx).Err(); err != nil {
-		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
-	}
-
 	return &RateLimiter{
-		redisClient: rdb,
+		redisClient: redisClient,
 		config:      config,
-	}, nil
+	}
 }
 
-// RateLimit creates a Gin middleware for rate limiting
-func (rl *RateLimiter) RateLimit() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		clientIP := c.ClientIP()
-		key := fmt.Sprintf("rate_limit:%s", clientIP)
-
-		ctx := context.Background()
-
-		// Get current request count
-		current, err := rl.redisClient.Get(ctx, key).Int()
+// Middleware returns the rate limiting middleware
+func (r *RateLimiter) Middleware() gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		key := r.getRateLimitKey(c)
+		
+		// Check current request count
+		val, err := r.redisClient.Get(c.Request.Context(), key).Int()
 		if err != nil && err != redis.Nil {
-			rl.config.Logger.Error("Failed to get rate limit count", zap.Error(err))
+			// Log error but allow request
+			r.config.Logger.Error("Rate limiter Redis error", zap.Error(err))
 			c.Next()
 			return
 		}
 
-		// Check if rate limit exceeded
-		if current >= rl.config.RequestsPerMinute {
-			rl.config.Logger.Warn("Rate limit exceeded",
-				zap.String("ip", clientIP),
-				zap.Int("requests", current))
-
+		if val >= r.config.RequestsPerMinute {
+			r.config.Logger.Warn("Rate limit exceeded",
+				zap.String("key", key),
+				zap.Int("current", val),
+				zap.Int("limit", r.config.RequestsPerMinute))
+			
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error":       "rate_limit_exceeded",
-				"message":     "Too many requests. Please try again later.",
-				"retry_after": 60,
+				"error": "Rate limit exceeded",
+				"message": "Too many requests, please try again later",
+				"code": "RATE_LIMIT_EXCEEDED",
 			})
 			c.Abort()
 			return
 		}
 
-		// Increment request count with expiration
-		pipe := rl.redisClient.Pipeline()
-		pipe.Incr(ctx, key)
-		pipe.Expire(ctx, key, time.Minute)
-
-		if _, err := pipe.Exec(ctx); err != nil {
-			rl.config.Logger.Error("Failed to increment rate limit", zap.Error(err))
+		// Increment counter
+		pipe := r.redisClient.Pipeline()
+		pipe.Incr(c.Request.Context(), key)
+		pipe.Expire(c.Request.Context(), key, time.Minute)
+		_, err = pipe.Exec(c.Request.Context())
+		if err != nil {
+			r.config.Logger.Error("Rate limiter pipeline error", zap.Error(err))
 		}
 
 		c.Next()
+	})
+}
+
+// getRateLimitKey generates a rate limit key for the request
+func (r *RateLimiter) getRateLimitKey(c *gin.Context) string {
+	clientIP := c.ClientIP()
+	userAgent := c.GetHeader("User-Agent")
+	
+	// Create a unique key based on IP and User-Agent
+	key := fmt.Sprintf("rate_limit:%s:%s", clientIP, userAgent)
+	
+	// If user is authenticated, use user ID instead
+	if userID, exists := c.Get("userID"); exists {
+		key = fmt.Sprintf("rate_limit:user:%v", userID)
+	}
+	
+	return key
+}
+
+// Close closes the Redis connection
+func (r *RateLimiter) Close() error {
+	return r.redisClient.Close()
+}
+
+// InMemoryRateLimiter implements a simple in-memory rate limiter for development
+type InMemoryRateLimiter struct {
+	requests map[string][]time.Time
+	mutex    sync.RWMutex
+	limit    int
+	window   time.Duration
+}
+
+// NewInMemoryRateLimiter creates a new in-memory rate limiter
+func NewInMemoryRateLimiter(limit int, window time.Duration) *InMemoryRateLimiter {
+	return &InMemoryRateLimiter{
+		requests: make(map[string][]time.Time),
+		limit:    limit,
+		window:   window,
 	}
 }
 
-// RateLimitByPath creates rate limiting by specific path patterns
-func (rl *RateLimiter) RateLimitByPath(pathLimits map[string]int) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		clientIP := c.ClientIP()
-		path := c.Request.URL.Path
-
-		// Find matching path limit
-		limit := rl.config.RequestsPerMinute // default limit
-		for pattern, limitValue := range pathLimits {
-			if strings.Contains(path, pattern) {
-				limit = limitValue
-				break
+// Middleware returns the rate limiting middleware
+func (r *InMemoryRateLimiter) Middleware() gin.HandlerFunc {
+	return gin.HandlerFunc(func(c *gin.Context) {
+		key := r.getRateLimitKey(c)
+		now := time.Now()
+		
+		r.mutex.Lock()
+		defer r.mutex.Unlock()
+		
+		// Remove old requests outside the window
+		var validRequests []time.Time
+		for _, reqTime := range r.requests[key] {
+			if now.Sub(reqTime) < r.window {
+				validRequests = append(validRequests, reqTime)
 			}
 		}
-
-		key := fmt.Sprintf("rate_limit:%s:%s", clientIP, path)
-		ctx := context.Background()
-
-		// Get current request count
-		current, err := rl.redisClient.Get(ctx, key).Int()
-		if err != nil && err != redis.Nil {
-			rl.config.Logger.Error("Failed to get rate limit count", zap.Error(err))
-			c.Next()
-			return
-		}
-
-		// Check if rate limit exceeded
-		if current >= limit {
-			rl.config.Logger.Warn("Rate limit exceeded",
-				zap.String("ip", clientIP),
-				zap.String("path", path),
-				zap.Int("requests", current),
-				zap.Int("limit", limit))
-
+		
+		// Check if limit exceeded
+		if len(validRequests) >= r.limit {
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error":       "rate_limit_exceeded",
-				"message":     "Too many requests. Please try again later.",
-				"retry_after": 60,
+				"error": "Rate limit exceeded",
+				"message": "Too many requests, please try again later",
+				"code": "RATE_LIMIT_EXCEEDED",
 			})
 			c.Abort()
 			return
 		}
-
-		// Increment request count with expiration
-		pipe := rl.redisClient.Pipeline()
-		pipe.Incr(ctx, key)
-		pipe.Expire(ctx, key, time.Minute)
-
-		if _, err := pipe.Exec(ctx); err != nil {
-			rl.config.Logger.Error("Failed to increment rate limit", zap.Error(err))
-		}
-
+		
+		// Add current request
+		validRequests = append(validRequests, now)
+		r.requests[key] = validRequests
+		
 		c.Next()
-	}
+	})
 }
 
-// GetRateLimitHeaders returns rate limit headers for responses
-func GetRateLimitHeaders(limit, remaining, reset int) map[string]string {
-	return map[string]string{
-		"X-RateLimit-Limit":     strconv.Itoa(limit),
-		"X-RateLimit-Remaining": strconv.Itoa(remaining),
-		"X-RateLimit-Reset":     strconv.Itoa(reset),
+// getRateLimitKey generates a rate limit key for the request
+func (r *InMemoryRateLimiter) getRateLimitKey(c *gin.Context) string {
+	clientIP := c.ClientIP()
+	
+	// If user is authenticated, use user ID instead
+	if userID, exists := c.Get("userID"); exists {
+		return fmt.Sprintf("user:%v", userID)
 	}
+	
+	return fmt.Sprintf("ip:%s", clientIP)
 }

@@ -3,9 +3,9 @@ module github.com/gmsas95/blytz-mvp/services/auction-service
 go 1.25
 
 require (
-tgithub.com/redis/go-redis/v9 v9.7.0
+	github.com/redis/go-redis/v9 v9.7.0
 	gorm.io/driver/postgres v1.6.0
-gorm.io/gorm v1.31.0
+	gorm.io/gorm v1.31.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/gmsas95/blytz-mvp/shared v0.0.0
 	github.com/lib/pq v1.10.9
@@ -13,9 +13,6 @@ gorm.io/gorm v1.31.0
 )
 
 require (
-tgithub.com/redis/go-redis/v9 v9.7.0
-	gorm.io/driver/postgres v1.6.0
-gorm.io/gorm v1.31.0
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
