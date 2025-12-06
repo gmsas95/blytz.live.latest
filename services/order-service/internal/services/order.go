@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -27,11 +28,182 @@ func NewOrderService(db *gorm.DB, logger *zap.Logger, config *config.Config) *Or
 	}
 }
 
-// GetDB returns the database connection for use by handlers
+// GetDB returns database connection for use by handlers
 func (s *OrderService) GetDB() *gorm.DB {
 	return s.db
 }
 
+// === CART OPERATIONS ===
+
+// GetOrCreateCart gets user's cart or creates empty one
+func (s *OrderService) GetOrCreateCart(ctx context.Context, userID string) (*models.Cart, error) {
+	var cart models.Cart
+	err := s.db.Preload("Items").Where("user_id = ?", userID).First(&cart).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			cart = models.Cart{
+				UserID:    userID,
+				Items:     []models.CartItem{},
+				Total:     0,
+				ItemCount: 0,
+			}
+			if createErr := s.db.Create(&cart).Error; createErr != nil {
+				s.logger.Error("Failed to create cart", zap.Error(createErr))
+				return nil, fmt.Errorf("failed to create cart")
+			}
+			return &cart, nil
+		}
+		s.logger.Error("Failed to get cart", zap.String("user_id", userID), zap.Error(err))
+		return nil, fmt.Errorf("failed to get cart")
+	}
+	return &cart, nil
+}
+
+// AddToCart adds item to cart
+func (s *OrderService) AddToCart(ctx context.Context, userID string, req *AddToCartRequest) (*models.Cart, error) {
+	s.logger.Info("Adding to cart", zap.String("user_id", userID), zap.String("product_id", req.ProductID))
+
+	// Get or create cart
+	cart, err := s.GetOrCreateCart(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if item already exists in cart
+	var existingItem models.CartItem
+	err = s.db.Where("cart_id = ? AND product_id = ?", cart.ID, req.ProductID).First(&existingItem).Error
+	
+	if err == nil {
+		// Update existing item quantity
+		newQuantity := existingItem.Quantity + req.Quantity
+		existingItem.Quantity = newQuantity
+		existingItem.Total = existingItem.Price * int64(newQuantity)
+		
+		if updateErr := s.db.Save(&existingItem).Error; updateErr != nil {
+			s.logger.Error("Failed to update cart item", zap.Error(updateErr))
+			return nil, fmt.Errorf("failed to update cart item")
+		}
+	} else if err == gorm.ErrRecordNotFound {
+		// Add new item
+		cartItem := models.CartItem{
+			CartID:    cart.ID,
+			ProductID: req.ProductID,
+			AuctionID: req.AuctionID,
+			Quantity:  req.Quantity,
+			Price:     req.Price,
+			Total:     req.Price * int64(req.Quantity),
+		}
+		
+		if createErr := s.db.Create(&cartItem).Error; createErr != nil {
+			s.logger.Error("Failed to create cart item", zap.Error(createErr))
+			return nil, fmt.Errorf("failed to add item to cart")
+		}
+		
+		cart.Items = append(cart.Items, cartItem)
+	} else {
+		s.logger.Error("Failed to check cart item", zap.Error(err))
+		return nil, fmt.Errorf("failed to add item to cart")
+	}
+
+	// Recalculate cart totals
+	if err := s.recalculateCartTotals(cart.ID); err != nil {
+		return nil, err
+	}
+
+	// Return updated cart
+	return s.GetOrCreateCart(ctx, userID)
+}
+
+// UpdateCartItem updates quantity of item in cart
+func (s *OrderService) UpdateCartItem(ctx context.Context, userID string, itemID string, quantity int) (*models.Cart, error) {
+	if quantity <= 0 {
+		return s.RemoveFromCart(ctx, userID, itemID)
+	}
+
+	// Get cart
+	cart, err := s.GetOrCreateCart(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update item
+	var cartItem models.CartItem
+	err = s.db.Where("id = ? AND cart_id = ?", itemID, cart.ID).First(&cartItem).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("cart item not found")
+		}
+		return nil, fmt.Errorf("failed to update cart item")
+	}
+
+	cartItem.Quantity = quantity
+	cartItem.Total = cartItem.Price * int64(quantity)
+
+	if updateErr := s.db.Save(&cartItem).Error; updateErr != nil {
+		s.logger.Error("Failed to update cart item", zap.Error(updateErr))
+		return nil, fmt.Errorf("failed to update cart item")
+	}
+
+	// Recalculate cart totals
+	if err := s.recalculateCartTotals(cart.ID); err != nil {
+		return nil, err
+	}
+
+	return s.GetOrCreateCart(ctx, userID)
+}
+
+// RemoveFromCart removes item from cart
+func (s *OrderService) RemoveFromCart(ctx context.Context, userID string, itemID string) (*models.Cart, error) {
+	// Get cart
+	cart, err := s.GetOrCreateCart(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Delete item
+	err = s.db.Where("id = ? AND cart_id = ?", itemID, cart.ID).Delete(&models.CartItem{}).Error
+	if err != nil {
+		s.logger.Error("Failed to remove cart item", zap.Error(err))
+		return nil, fmt.Errorf("failed to remove cart item")
+	}
+
+	// Recalculate cart totals
+	if err := s.recalculateCartTotals(cart.ID); err != nil {
+		return nil, err
+	}
+
+	return s.GetOrCreateCart(ctx, userID)
+}
+
+// ClearCart clears all items from user's cart
+func (s *OrderService) ClearCart(ctx context.Context, userID string) error {
+	// Get cart
+	cart, err := s.GetOrCreateCart(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	// Delete all items
+	err = s.db.Where("cart_id = ?", cart.ID).Delete(&models.CartItem{}).Error
+	if err != nil {
+		s.logger.Error("Failed to clear cart", zap.Error(err))
+		return fmt.Errorf("failed to clear cart")
+	}
+
+	// Update cart totals
+	cart.Total = 0
+	cart.ItemCount = 0
+	if updateErr := s.db.Save(cart).Error; updateErr != nil {
+		s.logger.Error("Failed to update cart totals", zap.Error(updateErr))
+		return fmt.Errorf("failed to update cart")
+	}
+
+	return nil
+}
+
+// === ORDER OPERATIONS ===
+
+// CreateOrder creates new order from cart or direct request
 func (s *OrderService) CreateOrder(ctx context.Context, userID string, req *CreateOrderRequest) (*models.Order, error) {
 	s.logger.Info("Creating order", zap.String("user_id", userID), zap.String("product_id", req.ProductID))
 
@@ -40,6 +212,30 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID string, req *Crea
 		return nil, err
 	}
 
+	// Check if this is auction order vs regular order
+	var order *models.Order
+	var err error
+
+	if req.AuctionID != nil && *req.AuctionID != "" {
+		order, err = s.createAuctionOrder(ctx, userID, req)
+	} else {
+		order, err = s.createRegularOrder(ctx, userID, req)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Reserve stock if needed
+	if err := s.reserveStock(order.ProductID, order.Quantity); err != nil {
+		return nil, fmt.Errorf("failed to reserve stock: %w", err)
+	}
+
+	return order, nil
+}
+
+// createRegularOrder creates regular product order
+func (s *OrderService) createRegularOrder(ctx context.Context, userID string, req *CreateOrderRequest) (*models.Order, error) {
 	// Calculate total amount
 	totalAmount := req.Price * int64(req.Quantity)
 
@@ -56,6 +252,7 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID string, req *Crea
 		Currency:      req.Currency,
 		Status:        string(models.OrderStatusPending),
 		PaymentStatus: string(models.PaymentStatusPending),
+		PaymentMethod: req.PaymentMethod,
 		ShippingAddress: models.Address{
 			Name:        req.ShippingAddress.Name,
 			Street:      req.ShippingAddress.Street,
@@ -77,141 +274,221 @@ func (s *OrderService) CreateOrder(ctx context.Context, userID string, req *Crea
 		Notes: req.Notes,
 	}
 
-	if err := s.db.Create(order).Error; err != nil {
-		s.logger.Error("Failed to create order", zap.Error(err))
-		return nil, errors.ErrInternalServer
+	if createErr := s.db.Create(order).Error; createErr != nil {
+		s.logger.Error("Failed to create order", zap.Error(createErr))
+		return nil, fmt.Errorf("failed to create order")
 	}
 
-	s.logger.Info("Order created successfully", zap.String("order_id", order.ID))
 	return order, nil
 }
 
-func (s *OrderService) GetOrder(ctx context.Context, orderID string, userID string) (*models.Order, error) {
-	s.logger.Info("Getting order", zap.String("order_id", orderID), zap.String("user_id", userID))
+// createAuctionOrder creates auction winner order
+func (s *OrderService) createAuctionOrder(ctx context.Context, userID string, req *CreateOrderRequest) (*models.Order, error) {
+	// For auction orders, validate auction win status
+	// This would typically involve checking with auction service
+	// For now, create similar to regular order
+	
+	return s.createRegularOrder(ctx, userID, req)
+}
 
+// GetOrder gets order by ID for user
+func (s *OrderService) GetOrder(ctx context.Context, userID, orderID string) (*models.Order, error) {
 	var order models.Order
-	if err := s.db.Where("id = ? AND user_id = ?", orderID, userID).First(&order).Error; err != nil {
+	err := s.db.Where("id = ? AND user_id = ?", orderID, userID).First(&order).Error
+	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.ErrNotFound
+			return nil, fmt.Errorf("order not found")
 		}
-		s.logger.Error("Failed to get order", zap.Error(err))
-		return nil, errors.ErrInternalServer
+		s.logger.Error("Failed to get order", zap.String("order_id", orderID), zap.Error(err))
+		return nil, fmt.Errorf("failed to get order")
 	}
-
 	return &order, nil
 }
 
-func (s *OrderService) GetUserOrders(ctx context.Context, userID string, limit, offset int) ([]*models.Order, int64, error) {
-	s.logger.Info("Getting user orders", zap.String("user_id", userID))
-
-	var orders []*models.Order
+// GetUserOrders gets all orders for user with pagination
+func (s *OrderService) GetUserOrders(ctx context.Context, userID string, page, pageSize int) ([]models.Order, int64, error) {
+	var orders []models.Order
 	var total int64
 
-	query := s.db.Where("user_id = ?", userID)
+	offset := (page - 1) * pageSize
 
-	// Get total count
-	if err := query.Model(&models.Order{}).Count(&total).Error; err != nil {
-		s.logger.Error("Failed to count user orders", zap.Error(err))
-		return nil, 0, errors.ErrInternalServer
+	// Count total orders
+	if err := s.db.Model(&models.Order{}).Where("user_id = ?", userID).Count(&total).Error; err != nil {
+		s.logger.Error("Failed to count orders", zap.Error(err))
+		return nil, 0, fmt.Errorf("failed to count orders")
 	}
 
 	// Get orders with pagination
-	if err := query.Order("created_at DESC").Limit(limit).Offset(offset).Find(&orders).Error; err != nil {
-		s.logger.Error("Failed to get user orders", zap.Error(err))
-		return nil, 0, errors.ErrInternalServer
+	err := s.db.Where("user_id = ?", userID).
+		Order("created_at DESC").
+		Limit(pageSize).
+		Offset(offset).
+		Find(&orders).Error
+
+	if err != nil {
+		s.logger.Error("Failed to get user orders", zap.String("user_id", userID), zap.Error(err))
+		return nil, 0, fmt.Errorf("failed to get orders")
 	}
 
 	return orders, total, nil
 }
 
-func (s *OrderService) UpdateOrderStatus(ctx context.Context, orderID string, userID string, status models.OrderStatus) (*models.Order, error) {
-	s.logger.Info("Updating order status", zap.String("order_id", orderID), zap.String("user_id", userID), zap.String("status", string(status)))
-
-	var order models.Order
-	if err := s.db.Where("id = ? AND user_id = ?", orderID, userID).First(&order).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return nil, errors.ErrNotFound
-		}
-		s.logger.Error("Failed to get order for status update", zap.Error(err))
-		return nil, errors.ErrInternalServer
-	}
-
+// UpdateOrderStatus updates order status
+func (s *OrderService) UpdateOrderStatus(ctx context.Context, orderID string, status models.OrderStatus) error {
 	// Validate status transition
-	if !s.isValidStatusTransition(order.Status, string(status)) {
-		return nil, errors.ErrInvalidRequest
+	if !s.isValidOrderStatusTransition(status) {
+		return fmt.Errorf("invalid order status")
 	}
 
-	order.Status = string(status)
-	order.UpdatedAt = time.Now()
+	err := s.db.Model(&models.Order{}).
+		Where("id = ?", orderID).
+		Update("status", string(status)).Error
 
-	if err := s.db.Save(&order).Error; err != nil {
-		s.logger.Error("Failed to update order status", zap.Error(err))
-		return nil, errors.ErrInternalServer
+	if err != nil {
+		s.logger.Error("Failed to update order status", zap.String("order_id", orderID), zap.Error(err))
+		return fmt.Errorf("failed to update order status")
 	}
 
-	s.logger.Info("Order status updated successfully", zap.String("order_id", order.ID))
-	return &order, nil
-}
-
-func (s *OrderService) CancelOrder(ctx context.Context, orderID string, userID string) error {
-	s.logger.Info("Cancelling order", zap.String("order_id", orderID), zap.String("user_id", userID))
-
-	var order models.Order
-	if err := s.db.Where("id = ? AND user_id = ?", orderID, userID).First(&order).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return errors.ErrNotFound
-		}
-		s.logger.Error("Failed to get order for cancellation", zap.Error(err))
-		return errors.ErrInternalServer
-	}
-
-	// Check if order can be cancelled
-	if !s.canCancelOrder(order.Status) {
-		return fmt.Errorf("order cannot be cancelled in current status: %s", order.Status)
-	}
-
-	order.Status = string(models.OrderStatusCancelled)
-	order.PaymentStatus = string(models.PaymentStatusCancelled)
-	order.UpdatedAt = time.Now()
-
-	if err := s.db.Save(&order).Error; err != nil {
-		s.logger.Error("Failed to cancel order", zap.Error(err))
-		return errors.ErrInternalServer
-	}
-
-	s.logger.Info("Order cancelled successfully", zap.String("order_id", order.ID))
 	return nil
 }
 
-func (s *OrderService) isValidStatusTransition(currentStatus, newStatus string) bool {
-	// Define valid status transitions
-	validTransitions := map[string][]string{
-		string(models.OrderStatusPending):    {string(models.OrderStatusProcessing), string(models.OrderStatusCancelled)},
-		string(models.OrderStatusProcessing): {string(models.OrderStatusConfirmed), string(models.OrderStatusCancelled)},
-		string(models.OrderStatusConfirmed):  {string(models.OrderStatusShipped), string(models.OrderStatusCancelled)},
-		string(models.OrderStatusShipped):    {string(models.OrderStatusDelivered)},
-		string(models.OrderStatusDelivered):  {},
-		string(models.OrderStatusCancelled):  {},
-		string(models.OrderStatusRefunded):   {},
+// UpdatePaymentStatus updates payment status
+func (s *OrderService) UpdatePaymentStatus(ctx context.Context, orderID string, status models.PaymentStatus) error {
+	err := s.db.Model(&models.Order{}).
+		Where("id = ?", orderID).
+		Update("payment_status", string(status)).Error
+
+	if err != nil {
+		s.logger.Error("Failed to update payment status", zap.String("order_id", orderID), zap.Error(err))
+		return fmt.Errorf("failed to update payment status")
 	}
 
-	allowedStatuses, exists := validTransitions[currentStatus]
-	if !exists {
-		return false
+	return nil
+}
+
+// === HELPER METHODS ===
+
+// recalculateCartTotals recalculates cart total and item count
+func (s *OrderService) recalculateCartTotals(cartID string) error {
+	var cartItems []models.CartItem
+	err := s.db.Where("cart_id = ?", cartID).Find(&cartItems).Error
+	if err != nil {
+		return fmt.Errorf("failed to get cart items for recalculation")
 	}
 
-	for _, allowed := range allowedStatuses {
-		if allowed == newStatus {
+	var total int64
+	var itemCount int
+
+	for _, item := range cartItems {
+		total += item.Total
+		itemCount += item.Quantity
+	}
+
+	// Update cart totals
+	err = s.db.Model(&models.Cart{}).
+		Where("id = ?", cartID).
+		Updates(map[string]interface{}{
+			"total":      total,
+			"item_count": itemCount,
+		}).Error
+
+	if err != nil {
+		return fmt.Errorf("failed to update cart totals")
+	}
+
+	return nil
+}
+
+// reserveStock reserves stock for order (would integrate with product service)
+func (s *OrderService) reserveStock(productID string, quantity int) error {
+	// This would integrate with product service
+	// For now, just log the reservation
+	s.logger.Info("Stock reservation", 
+		zap.String("product_id", productID),
+		zap.Int("quantity", quantity))
+	return nil
+}
+
+// isValidOrderStatusTransition validates order status transitions
+func (s *OrderService) isValidOrderStatusTransition(status models.OrderStatus) bool {
+	validStatuses := []models.OrderStatus{
+		models.OrderStatusPending,
+		models.OrderStatusProcessing,
+		models.OrderStatusConfirmed,
+		models.OrderStatusShipped,
+		models.OrderStatusDelivered,
+		models.OrderStatusCancelled,
+		models.OrderStatusRefunded,
+	}
+
+	for _, validStatus := range validStatuses {
+		if status == validStatus {
 			return true
 		}
 	}
-
 	return false
 }
 
-func (s *OrderService) canCancelOrder(status string) bool {
-	// Orders can only be cancelled if they're not already shipped, delivered, or cancelled
-	return status == string(models.OrderStatusPending) ||
-		status == string(models.OrderStatusProcessing) ||
-		status == string(models.OrderStatusConfirmed)
+// === REQUEST TYPES ===
+
+// AddToCartRequest represents add to cart request
+type AddToCartRequest struct {
+	ProductID string `json:"product_id" binding:"required"`
+	AuctionID *string `json:"auction_id,omitempty"`
+	Quantity  int    `json:"quantity" binding:"required,min=1"`
+	Price     int64  `json:"price" binding:"required,min=0"`
+}
+
+// CreateOrderRequest represents order creation request
+type CreateOrderRequest struct {
+	ProductID       string        `json:"product_id" binding:"required"`
+	AuctionID       *string       `json:"auction_id,omitempty"`
+	ProductName     string        `json:"product_name" binding:"required"`
+	ProductImage    string        `json:"product_image,omitempty"`
+	Quantity        int           `json:"quantity" binding:"required,min=1"`
+	Price           int64         `json:"price" binding:"required,min=0"`
+	Currency        string        `json:"currency" binding:"required,len=3"`
+	PaymentMethod   string        `json:"payment_method,omitempty"`
+	ShippingAddress AddressRequest `json:"shipping_address" binding:"required"`
+	BillingAddress  AddressRequest `json:"billing_address" binding:"required"`
+	Notes           string        `json:"notes,omitempty"`
+}
+
+// AddressRequest represents address request
+type AddressRequest struct {
+	Name        string `json:"name" binding:"required"`
+	Street      string `json:"street" binding:"required"`
+	City        string `json:"city" binding:"required"`
+	State       string `json:"state" binding:"required"`
+	PostalCode  string `json:"postal_code" binding:"required"`
+	Country     string `json:"country" binding:"required"`
+	PhoneNumber string `json:"phone_number,omitempty"`
+}
+
+// Validate validates CreateOrderRequest
+func (r *CreateOrderRequest) Validate() error {
+	if r.ProductID == "" {
+		return errors.New("product_id is required")
+	}
+	if r.Quantity <= 0 {
+		return errors.New("quantity must be greater than 0")
+	}
+	if r.Price < 0 {
+		return errors.New("price cannot be negative")
+	}
+	return nil
+}
+
+// Validate validates AddToCartRequest
+func (r *AddToCartRequest) Validate() error {
+	if r.ProductID == "" {
+		return errors.New("product_id is required")
+	}
+	if r.Quantity <= 0 {
+		return errors.New("quantity must be greater than 0")
+	}
+	if r.Price < 0 {
+		return errors.New("price cannot be negative")
+	}
+	return nil
 }
