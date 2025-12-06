@@ -1,0 +1,233 @@
+openapi: 3.1.0
+info:
+  title: Blytz Auction Service
+  version: "1.0.0"
+  description: Handles creation, bidding, and management of auctions.
+servers:
+  - url: http://localhost:8083
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+
+  /auction-metrics:
+    get:
+      summary: Prometheus metrics endpoint
+      tags:
+        - Monitoring
+      responses:
+        '200':
+          description: Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /auctions/{id}:
+    get:
+      summary: Get a specific auction by ID
+      tags:
+        - Auctions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Auction details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuctionResponse'
+        '404':
+          description: Auction not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auctions/:
+    post:
+      summary: Create a new auction
+      tags:
+        - Auctions
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAuctionRequest'
+      responses:
+        '201':
+          description: Auction created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuctionResponse'
+        '400':
+          description: Invalid request data.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auctions/{id}/bids:
+    post:
+      summary: Place a bid on an auction
+      tags:
+        - Bids
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceBidRequest'
+      responses:
+        '201':
+          description: Bid placed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BidResponse'
+        '400':
+          description: Invalid bid (e.g., too low).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    Auction:
+      type: object
+      properties:
+        auction_id: { type: string }
+        product_id: { type: string }
+        seller_id: { type: string }
+        title: { type: string }
+        description: { type: string }
+        starting_price: { type: number, format: double }
+        current_price: { type: number, format: double }
+        reserve_price: { type: number, format: double }
+        min_bid_increment: { type: number, format: double }
+        start_time: { type: string, format: date-time }
+        end_time: { type: string, format: date-time }
+        status: { type: string, enum: [scheduled, active, ended, cancelled] }
+        type: { type: string, enum: [live, scheduled] }
+        is_active: { type: boolean }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        bids:
+          type: array
+          items:
+            $ref: '#/components/schemas/Bid'
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuctionImage'
+    Bid:
+      type: object
+      properties:
+        bid_id: { type: string }
+        auction_id: { type: string }
+        bidder_id: { type: string }
+        amount: { type: number, format: double }
+        is_winning: { type: boolean }
+        bid_time: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+    AuctionImage:
+      type: object
+      properties:
+        image_id: { type: string }
+        auction_id: { type: string }
+        image_url: { type: string }
+        alt_text: { type: string }
+        order: { type: integer }
+    CreateAuctionRequest:
+      type: object
+      required: [product_id, title, starting_price, min_bid_increment, start_time, end_time, type]
+      properties:
+        product_id: { type: string }
+        title: { type: string }
+        description: { type: string }
+        starting_price: { type: number, format: double, minimum: 0 }
+        reserve_price: { type: number, format: double }
+        min_bid_increment: { type: number, format: double, minimum: 0 }
+        start_time: { type: string, format: date-time }
+        end_time: { type: string, format: date-time }
+        type: { type: string, enum: [live, scheduled] }
+        images:
+          type: array
+          items:
+            type: string
+    PlaceBidRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount: { type: number, format: double, minimum: 0 }
+    AuctionResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/Auction'
+    BidResponse:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          $ref: '#/components/schemas/Bid'
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "INVALID_REQUEST"
+        message:
+          type: string
+          example: "The request data was invalid."
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

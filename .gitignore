@@ -1,0 +1,405 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+.env.*.production
+.env.*.staging
+!.env.example
+!.env.staging.example
+!.env.production.example
+
+# Go build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.exe~
+/auction
+/auction-service
+/auth-service
+/product-service
+/order-service
+/payment-service
+/chat-service
+/logistics-service
+/gateway
+/main
+services/*/main
+services/*/*-service
+services/*/bin/
+services/*/build/
+services/*/dist/
+services/*/coverage.out
+services/*/coverage.html
+services/*/*.test
+
+# Go distribution files (should not be in repo)
+go*.tar.gz
+go*.zip
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+log/
+firebase-debug.log
+*.log.*
+
+# SSL certificates and keys
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+acme.json
+acme.json.backup.bak/
+acme-temp.json
+
+# Production secrets and keys
+secrets/
+keys/
+*.secret
+*.keyfile
+service-account-*.json
+google-services.json
+GoogleService-Info.plist
+opencode.json
+
+# Docker volumes
+redis-data/
+docker-volumes/
+volumes/
+data/
+postgres-data/
+mysql-data/
+livekit_redis_data/
+
+# Next.js build artifacts
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/tsconfig.tsbuildinfo
+frontend/.next/
+frontend-demo/.next/
+frontend-demo/out/
+frontend-demo/build/
+frontend-seller/.next/
+frontend-seller/out/
+frontend-seller/build/
+.next/
+out/
+build/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+.pnp
+.pnp.js
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+*.pyc
+
+# Temporary files
+tmp/
+temp/
+temp-build/
+*.tmp
+*.temp
+.cache/
+.parcel-cache/
+
+# Coverage and test files
+*.coverprofile
+coverage.out
+coverage.html
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+*.lcov
+
+# Build directories
+build/
+dist/
+bin/
+target/
+cmd/
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.backup.*
+docker-compose.yml.backup
+nginx.conf.backup.*
+*.conf.backup
+*.config.backup
+*.yml.backup
+*.yaml.backup
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.sql.gz
+
+# Package files (keep source, ignore distributions)
+*.jar
+*.war
+*.ear
+*.rar
+*.7z
+*.deb
+*.rpm
+*.dmg
+*.pkg
+*.msi
+*.bin
+*.run
+
+# Firebase
+.firebase/
+.firebaserc
+firebase-data/
+firebase-debug.log
+
+# Dokploy specific
+dokploy-data/
+.dokploy/
+
+# Security and sensitive files
+*.private
+*.secret
+*.token
+*.password
+*.credential
+*.auth
+security/
+credentials/
+config/secrets/
+
+# Cloud provider credentials
+aws-credentials.json
+gcp-credentials.json
+azure-credentials.json
+
+# SSH keys
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+known_hosts
+ssh_config
+
+# Application specific
+shared/pkg/auth/keys/
+services/*/config/secrets/
+services/*/keys/
+
+# Local development overrides
+local-compose.yml
+local-docker-compose.yml
+docker-compose.override.yml
+
+# Test artifacts
+test-results/
+playwright-report/
+coverage/
+*.lcov
+.nyc_output/
+reports/
+
+# Profiling and debugging
+*.prof
+*.pprof
+*.cpu
+*.mem
+heap.prof
+cpu.prof
+
+# Monitoring and metrics data
+metrics/
+monitoring/
+*.metrics
+*.monitoring
+prometheus-data/
+grafana-data/
+
+# Temporary deployment files
+deploy-temp/
+deployment-temp/
+.tmp-deploy/
+
+# Archive and backup directories
+archives/
+backups/
+old/
+legacy/
+deprecated/
+
+# Flutter build artifacts
+blytz_flutter_app/build/
+blytz_flutter_app/.dart_tool/
+blytz_flutter_app/.flutter-plugins
+blytz_flutter_app/.flutter-plugins-dependencies
+blytz_flutter_app/.packages
+blytz_flutter_app/.pub-cache/
+blytz_flutter_app/.pub/
+blytz_flutter_app/pubspec.lock
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Test files in root (keep in proper directories)
+jwt_demo*.go
+simple*.go
+simple*.py
+test-*.html
+test-*.sh
+!test-microservices.sh
+!validate-architecture.sh
+!verify-shared-migration.sh
+
+# Multiple config files (keep main ones, ignore variants)
+# Docker Compose - keep main, ignore variants
+docker-compose-add-services.yml
+docker-compose-cloud-livekit.yml
+docker-compose-demo-seller.yml
+docker-compose-hostinger.yml
+docker-compose.dev.yml
+docker-compose.dokploy.yml
+docker-compose.prod.yml
+docker-compose.simple.yml
+docker-compose.yml.backup
+dokploy-complete-traefik.yml
+dokploy-fixed-complete.yml
+dokploy-fixed-with-unique-middleware.yml
+dokploy-fixed.yml
+dokploy-with-demo-seller.yml
+middlewares-fixed.yml
+middlewares.yml
+traefik-additional-routes.yml
+traefik-cloud-livekit.yml
+traefik-dokploy-final.yml
+traefik-dynamic-unified.yml
+traefik-main-corrected.yml
+traefik-main-fixed.yml
+traefik-fix.sh
+
+# Nginx configs - keep main ones, ignore variants
+nginx-dokploy-external.conf
+nginx-dokploy-ssl.conf
+nginx-dokploy.conf
+nginx-external-final.conf
+nginx-final.conf
+nginx-live-final.conf
+nginx-production-simple.conf
+nginx-simple.conf
+nginx-subdomains.conf
+nginx.conf.backup.*
+
+# Keep essential configs
+!docker-compose.yml
+!dokploy.yml
+!dokploy.json
+!nginx.conf
+!traefik.yml
+!prometheus.yml
+!livekit-config.yaml
+!livekit-config-hostinger.yaml
+
+# Keep essential scripts
+!deploy-all-services.sh
+!deploy-nginx-config.sh
+!deploy-to-vps.sh
+!dokploy-deploy.sh
+!setup-*.sh
+!start-*.sh
+!fix-*.sh
+!diagnose-*.sh
+
+# Generated files
+generated/
+auto-generated/
+*.generated.*
+
+# Local development artifacts
+.local/
+local/
+dev/
+development/
+
+# Cache directories
+.cache/
+cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+# Package manager locks (keep source control locks)
+*.lock.bak
+*.lock.tmp
+
+# Large media files
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.mkv
+*.iso
+*.img
+
+# Keep documentation but ignore large reports
+!README.md
+!AGENTS.md
+!DEPLOYMENT_GUIDE.md
+!DEVELOPMENT_ROADMAP.md
+!TECHNICAL_DEBT.md
+!PHASE1_FIXES_SUMMARY.md
+!TEST_RESULTS_PHASE1.md

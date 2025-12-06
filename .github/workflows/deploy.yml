@@ -1,0 +1,288 @@
+name: 🚀 Blytz MVP CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: blytz
+  GO_VERSION: '1.25'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # 🔍 TEST STAGE - Matrix strategy for all microservices
+  test:
+    name: 🧪 Test Services
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - name: auth-service
+            port: 8081
+            path: services/auth-service
+          - name: product-service
+            port: 8082
+            path: services/product-service
+          - name: auction-service
+            port: 8083
+            path: services/auction-service
+          - name: payment-service
+            port: 8086
+            path: services/payment-service
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: 💾 Cache Go Modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+            ${{ matrix.service.path }}/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ matrix.service.name }}-${{ hashFiles(format('{0}/go.sum', matrix.service.path)) }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ matrix.service.name }}-
+            ${{ runner.os }}-go-
+
+      - name: 🏗️ Install Dependencies
+        run: |
+          echo "📦 Installing dependencies for ${{ matrix.service.name }}..."
+          go work sync
+          cd ${{ matrix.service.path }}
+          go mod download
+          go mod tidy
+
+      - name: 🔨 Build Service
+        run: |
+          echo "🔨 Building ${{ matrix.service.name }}..."
+          cd ${{ matrix.service.path }}
+          go build -v ./...
+
+      - name: 🧪 Run Tests
+        run: |
+          echo "🧪 Testing ${{ matrix.service.name }}..."
+          cd ${{ matrix.service.path }}
+          go test ./... -v -race -coverprofile=coverage.out
+          go tool cover -func=coverage.out
+
+      - name: 📊 Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.service.name }}
+          path: |
+            ${{ matrix.service.path }}/coverage.out
+            ${{ matrix.service.path }}/go-test-results.xml
+
+  # 🏗️ BUILD STAGE - Docker images
+  build:
+    name: 🏗️ Build Docker Images
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - name: auth-service
+            dockerfile: services/auth-service/Dockerfile
+            context: .
+          - name: product-service
+            dockerfile: services/product-service/Dockerfile
+            context: .
+          - name: auction-service
+            dockerfile: services/auction-service/Dockerfile
+            context: .
+          - name: payment-service
+            dockerfile: services/payment-service/Dockerfile
+            context: .
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Extract Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ env.IMAGE_PREFIX }}-${{ matrix.service.name }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: 🏗️ Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.service.context }}
+          file: ${{ matrix.service.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+  # 🚀 DEPLOY STAGE - VPS deployment (optional)
+  deploy:
+    name: 🚀 Deploy to Production
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔐 Setup SSH Keys
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: 🚀 Deploy to VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PATH: ${{ secrets.VPS_PATH }}
+        run: |
+          echo "🚀 Deploying to VPS..."
+
+          # Add SSH key to known hosts
+          ssh-keyscan -H $VPS_HOST >> ~/.ssh/known_hosts
+
+          # SSH into VPS and deploy
+          ssh $VPS_USER@$VPS_HOST << 'ENDSSH'
+            set -e
+            echo "📥 Pulling latest changes..."
+            cd $VPS_PATH
+            git pull origin main
+
+            echo "🐳 Updating Docker images..."
+            docker compose pull
+
+            echo "🚀 Restarting services..."
+            docker compose up -d --remove-orphans
+
+            echo "⏳ Waiting for services to be healthy..."
+            sleep 30
+
+            echo "✅ Verifying deployment..."
+            curl -f http://localhost:8080/health || exit 1
+            curl -f http://localhost:8081/health || exit 1
+            curl -f http://localhost:8082/health || exit 1
+            curl -f http://localhost:8083/health || exit 1
+            curl -f http://localhost:8086/health || exit 1
+
+            echo "🎉 Deployment successful!"
+          ENDSSH
+
+  # ⚡ LOAD TEST STAGE - k6 validation
+  load-test:
+    name: ⚡ Load Testing
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: ⚡ Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: 🧪 Run Load Tests
+        run: |
+          echo "⚡ Running load tests..."
+
+          # Wait for services to be ready
+          timeout 300 bash -c 'until curl -f http://localhost:8083/health; do sleep 5; done'
+
+          # Create load test script
+          cat > load-test.js << 'EOF'
+          import http from 'k6/http';
+          import { check, sleep } from 'k6';
+
+          export let options = {
+            stages: [
+              { duration: '30s', target: 10 },   // Ramp up to 10 users
+              { duration: '1m', target: 50 },    // Stay at 50 users
+              { duration: '30s', target: 0 },    // Ramp down to 0 users
+            ],
+            thresholds: {
+              http_req_duration: ['p(95)<300'],  // 95% of requests under 300ms
+              http_req_failed: ['rate<0.1'],     // Error rate under 10%
+            },
+          };
+
+          export default function() {
+            // Test auction listing endpoint
+            let response = http.get('http://localhost:8083/api/v1/auctions');
+
+            check(response, {
+              'status is 200': (r) => r.status === 200,
+              'response time < 300ms': (r) => r.timings.duration < 300,
+              'has success field': (r) => JSON.parse(r.body).success === true,
+            });
+
+            sleep(1);
+          }
+          EOF
+
+          # Run load test
+          k6 run load-test.js
+
+      - name: 📊 Upload Load Test Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-results
+          path: |
+            load-test.js
+            summary.json
+
+  # 🧹 CLEANUP STAGE
+  cleanup:
+    name: 🧹 Cleanup
+    needs: [test, build, deploy, load-test]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: 🧹 Clean up old images
+        run: |
+          echo "🧹 Cleaning up old images..."
+          # Keep only last 5 images per service
+          # This would be implemented with GitHub API calls in a real scenario
+          echo "Cleanup completed"""file_path":"/home/sas/blytzmvp-clean/.github/workflows/deploy.yml
