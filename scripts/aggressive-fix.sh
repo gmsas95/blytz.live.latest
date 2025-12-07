@@ -1,4 +1,29 @@
-module github.com/gmsas95/blytz.live.latest/services/livekit-service
+#!/bin/bash
+
+# 🔥 AGGRESSIVE BACKEND RECOVERY - EMERGENCY VERSION
+# This will completely replace broken dependencies with working versions
+
+echo "🚨 AGGRESSIVE BACKEND RECOVERY STARTING..."
+
+# Fix the specific problematic dependency globally
+echo "🔧 Fixing global Go dependencies..."
+go clean -modcache
+go install -a -v golang.org/x/mod/cmd/goimports@latest
+
+# Fix each service with specific dependency overrides
+for service_dir in services/*/; do
+    if [ -f "$service_dir/go.mod" ]; then
+        service_name=$(basename "$service_dir")
+        echo "🔧 Aggressively fixing $service_name..."
+        
+        cd "$service_dir"
+        
+        # Remove all go.sum files
+        rm -f go.sum
+        
+        # Create new go.mod with fixed dependencies
+        cat > go.mod << 'EOF'
+module github.com/gmsas95/blytz.live.latest/services/AUTH-SERVICE-REPLACE
 
 go 1.21
 
@@ -46,3 +71,27 @@ require (
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+EOF
+        
+        # Replace AUTH-SERVICE-REPLACE with actual service name
+        sed -i "s|AUTH-SERVICE-REPLACE|$service_name|g" go.mod
+        
+        # Initialize modules
+        go mod init "github.com/gmsas95/blytz.live.latest/services/$service_name"
+        
+        # Download dependencies
+        go mod download
+        
+        # Tidy modules
+        go mod tidy
+        
+        # Verify modules
+        go mod verify
+        
+        echo "✅ Fixed $service_name"
+        cd ../../
+    fi
+done
+
+echo "🎉 AGGRESSIVE BACKEND RECOVERY COMPLETE!"
+echo "🏗️ Testing service compilation..."

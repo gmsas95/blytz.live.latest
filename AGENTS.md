@@ -1,462 +1,672 @@
-# Blytz Live Auction Platform - AI Agent Guide
+# AGENTS.md
+
+This file provides guidance for AI agents (Cursor, Copilot, Claude, etc.) when working with code in this repository.
 
 ## Project Overview
 
-Blytz is a production-ready microservices-based live auction platform built with Go and modern cloud-native technologies. The platform enables real-time bidding, chat functionality, and payment processing with WebRTC streaming capabilities.
+Blytz Live Auction MVP - A real-time livestream commerce platform built with Go microservices, React frontend, and React Native mobile app. This is a comprehensive microservices e-commerce platform with 10+ services.
 
-**Key Architecture Decisions:**
-- Microservices architecture with 9 core services (8 business services + 1 gateway)
-- Self-hosted authentication system (Better Auth) for cost optimization
-- Redis-backed real-time bidding system with atomic Lua scripts
-- PostgreSQL for persistent data storage
-- Docker containerization with multi-stage builds
-- LiveKit integration for WebRTC streaming
-- Go workspace configuration with 10 modules (9 services + shared)
+## Architecture
 
-## Technology Stack
-
-### Backend Services
-- **Language**: Go 1.25 with workspace configuration (go.work)
-- **Web Framework**: Gin (HTTP router and middleware)
-- **Database**: PostgreSQL 15 with GORM ORM
-- **Cache**: Redis 7 for session management and real-time data
-- **Authentication**: Better Auth (self-hosted JWT-based system)
-- **Monitoring**: Prometheus metrics collection
-- **Logging**: Uber Zap structured logging
-- **Real-time**: LiveKit for WebRTC streaming
+### Core Services (Go 1.25)
+- **Auth Service** (Port 8085): Authentication with JWT tokens
+- **Product Service** (Port 8086): Product catalog management
+- **Auction Service** (Port 8087): Real-time auction engine
+- **Order Service** (Port 8088): Order processing and management
+- **Payment Service** (Port 8089): Payment processing with Stripe
+- **Chat Service** (Port 8090): Real-time messaging
+- **Logistics Service** (Port 8091): Shipping and tracking
+- **Gateway Service** (Port 8092): API gateway and routing
+- **LiveKit Service** (Port 8093): Video streaming integration
+- **Notification Service** (Port 8094): Email/push notifications
 
 ### Frontend Applications
-- **Main Frontend**: Next.js 14.2.33 with React 18 (Port 3000)
-- **Demo Frontend**: Viewer platform with LiveKit integration (Port 3001)
-- **Seller Frontend**: Broadcaster platform for auction hosts (Port 3002)
-- **UI Framework**: Radix UI components with Tailwind CSS
-- **State Management**: TanStack Query for data fetching
-- **Testing**: Jest, Playwright for E2E testing with accessibility support
+- **Frontend** (Next.js): React web application
+- **Frontend Mobile** (React Native): Mobile application
 
-### Infrastructure
-- **Containerization**: Docker with multi-stage builds
-- **Orchestration**: Docker Compose (9 different configurations)
-- **Deployment**: Dokploy for VPS deployment
-- **Reverse Proxy**: Nginx and Traefik configurations
-- **Real-time Communication**: LiveKit for WebRTC streaming
-- **SSL/TLS**: Let's Encrypt integration
+### Shared Infrastructure
+- **Shared Package**: Common utilities, errors, auth client
+- **PostgreSQL**: Primary database
+- **Redis**: Caching and session storage
 
-## Project Structure
+## Build, Test, and Development Commands
 
-```
-/home/sas/blytzmvp-clean/
-├── services/                    # 9 microservices
-│   ├── auth-service/           # Port 8084 - JWT authentication
-│   ├── product-service/        # Port 8082 - Product catalog
-│   ├── auction-service/        # Port 8083 - Auction management
-│   ├── chat-service/           # Port 8088 - Real-time chat
-│   ├── order-service/          # Port 8085 - Order processing
-│   ├── payment-service/        # Port 8086 - Payment processing
-│   ├── logistics-service/      # Port 8087 - Shipping management
-│   ├── gateway/                # Port 8080 - API gateway
-│   └── livekit-service/        # WebRTC streaming service
-├── shared/                     # Shared packages (CRITICAL: /pkg/ structure)
-│   └── pkg/
-│       ├── auth/               # Authentication client
-│       ├── errors/             # Error handling
-│       ├── middleware/         # Common middleware
-│       ├── utils/              # Utility functions
-│       └── constants/          # Shared constants
-├── frontend/                   # Main Next.js frontend (v2.0.1)
-├── frontend-demo/              # Demo viewer frontend
-├── frontend-seller/            # Seller broadcaster frontend
-├── functions/                  # Firebase cloud functions
-├── infra/                      # Infrastructure configurations
-├── scripts/                    # 19 utility scripts
-├── openapi/                    # API specifications
-├── grafana/                    # Monitoring dashboards
-└── docker-compose*.yml         # 9 deployment configurations
-```
+### Go Services Commands
 
-## Development Commands
-
-### Local Development
+#### Running Individual Services
 ```bash
-# Start all services with Docker Compose
-docker-compose up -d
+# Run any service from its directory
+cd services/auth-service
+go run main.go
 
-# Test individual service
-cd services/auth-service/cmd && go run main.go
+# Or from main-simple.go (if exists)
+go run main-simple.go
 
-# Run comprehensive tests
-./test-microservices.sh
+# Build service
+go build -o service-name .
 
-# Validate architecture
-./validate-architecture.sh
-
-# Use Makefile for CI/CD pipeline simulation
-make ci-pipeline
-
-# Setup Go environment
-source setup-go-env.sh
+# Run with specific port
+PORT=8085 go run main.go
 ```
 
-### Build and Test
+#### Testing Commands
 ```bash
-# Test specific service (from Makefile)
-make test SERVICE=auth-service
+# Run all tests in a service
+cd services/auth-service
+go test ./... -v
 
-# Test all services in parallel
-make test-all
+# Run tests with coverage
+go test ./... -v -race -coverprofile=coverage.out
+go tool cover -func=coverage.out
 
-# Build Docker images
-make build-all
+# Run specific test
+go test -v ./internal/services -run TestAuthService
 
-# Health check
-make health-check
+# Run integration tests
+go test -v ./tests/integration/...
 
-# Load testing
-make load-test
-
-# Full CI pipeline
-make ci-pipeline
+# Test all services (from root)
+./scripts/test.sh
+./scripts/test.sh auth-service
 ```
 
-### Frontend Development
+#### Build and Lint Commands
 ```bash
-# Main frontend
+# Build all services
+cd services/auth-service && go build ./...
+cd services/product-service && go build ./...
+# ... repeat for each service
+
+# Format Go code
+go fmt ./...
+
+# Vet Go code
+go vet ./...
+
+# Tidy dependencies
+go mod tidy
+
+# Download dependencies
+go mod download
+
+# Sync workspace (from root)
+go work sync
+```
+
+### Frontend Commands (Next.js)
+
+#### Development
+```bash
 cd frontend
-npm install
-npm run dev        # Start development server on port 3000
-npm run build      # Build for production
-npm run lint       # Run ESLint
-npm run format     # Format code with Prettier
-npm run test:e2e   # Run Playwright E2E tests
-
-# Demo frontend (port 3001)
-cd frontend-demo
-npm run dev
-
-# Seller frontend (port 3002)
-cd frontend-seller
-npm run dev
+npm run dev              # Start development server
+npm run build            # Build for production
+npm run start            # Start production server
+npm run type-check       # TypeScript type checking
 ```
 
-## Code Style Guidelines
-
-### Go Code Standards
-- **Package Structure**: Each service follows `cmd/main.go` entry point pattern
-- **Error Handling**: Use wrapped errors with context (`fmt.Errorf("failed to...: %w", err)`)
-- **Logging**: Use Uber Zap for structured logging with contextual fields
-- **Configuration**: Environment-based configuration with validation
-- **HTTP Responses**: Consistent JSON response format with error codes
-- **Import Paths**: Always use `/pkg/` prefix for shared imports (e.g., `github.com/gmsas95/blytz-mvp/shared/pkg/auth`)
-- **Go Version**: Go 1.25 with workspace configuration
-
-### Frontend Standards
-- **Component Structure**: Use Radix UI primitives with Tailwind CSS
-- **State Management**: TanStack Query for server state, React hooks for local state
-- **TypeScript**: Strict mode enabled, comprehensive type definitions
-- **Code Formatting**: Prettier with consistent configuration
-- **Component Naming**: PascalCase for components, camelCase for functions/variables
-- **Testing**: Jest for unit tests, Playwright for E2E with accessibility testing
-
-### API Design
-- **RESTful Principles**: Resource-based URLs with proper HTTP methods
-- **Versioning**: `/api/v1/` prefix for all endpoints
-- **Authentication**: JWT Bearer tokens in Authorization header
-- **Response Format**: Standardized JSON with `data`, `error`, `message` fields
-- **Error Codes**: Consistent HTTP status codes with detailed error messages
-
-## Authentication System
-
-The platform uses a self-hosted Better Auth system providing:
-- **Cost Savings**: 97% reduction vs Firebase Auth ($480-585/month saved)
-- **Performance**: Local queries (~5ms) vs external API calls (~100ms)
-- **Security**: Complete data ownership, no vendor lock-in
-- **Features**: JWT-based auth with registration, login, token refresh
-
-**Integration Pattern:**
-```go
-import "github.com/gmsas95/blytz-mvp/shared/pkg/auth"
-
-authClient := auth.NewAuthClient("http://auth-service:8084")
-router.Use(auth.GinAuthMiddleware(authClient))
-```
-
-**Protected Endpoints:**
-- `POST /api/v1/auctions` - Create auction
-- `PUT /api/v1/auctions/:id` - Update auction
-- `DELETE /api/v1/auctions/:id` - Delete auction
-- `POST /api/v1/auctions/:id/bids` - Place bid
-
-## Testing Strategy
-
-### Unit Testing
-- Go testing with race detection and coverage reporting
-- Test files follow `*_test.go` naming convention
-- Mock external dependencies and database calls
-- Aim for >80% code coverage on critical paths
-
-### Integration Testing
-- Service-to-service communication testing
-- Database integration tests with test containers
-- API endpoint testing with realistic payloads
-- Authentication flow validation
-
-### Frontend Testing
-- **Jest**: Unit testing with jsdom environment
-- **Playwright**: E2E testing with multiple browsers
-- **Accessibility**: Axe-core integration for a11y testing
-- **Visual Regression**: Snapshot testing capabilities
-- **Coverage**: Comprehensive coverage reporting
-
-### Load Testing
-- K6 framework for performance validation
-- Concurrent user simulation for auction bidding
-- Database query performance testing
-- Memory and CPU usage monitoring
-
-### Health Checks
-All services expose `/health` endpoints for monitoring:
+#### Testing
 ```bash
-curl http://localhost:8084/health  # Auth service
-curl http://localhost:8082/health  # Product service
-curl http://localhost:8083/health  # Auction service
-curl http://localhost:8085/health  # Order service
-curl http://localhost:8086/health  # Payment service
-curl http://localhost:8087/health  # Logistics service
-curl http://localhost:8088/health  # Chat service
-curl http://localhost:8080/health  # Gateway service
+npm run test             # Run Jest tests
+npm run test:watch       # Run tests in watch mode
+npm run test:coverage    # Run tests with coverage
+npm run test:e2e         # Run Playwright E2E tests
+npm run test:e2e:ui      # Run E2E tests with UI
+npm run test:e2e:debug   # Debug E2E tests
 ```
 
-## Deployment Process
+#### Code Quality
+```bash
+npm run lint             # Run ESLint
+npm run lint:fix         # Fix ESLint issues
+npm run format           # Format with Prettier
+npm run format:check     # Check formatting
+```
 
-### Local Development
-1. **Firebase Emulators**: Start local Firebase functions
-2. **Docker Compose**: Orchestrate all services with dependencies
-3. **Hot Reloading**: Frontend development with auto-refresh
-4. **Health Monitoring**: Built-in service health checks
+### Mobile App Commands (React Native)
+```bash
+cd frontend-mobile-rn
+npm install              # Install dependencies
+npm start                # Start Metro bundler
+npx react-native run-ios    # Run on iOS
+npx react-native run-android # Run on Android
+```
 
-### Production Deployment
-1. **Dokploy Configuration**: VPS deployment with SSL/TLS
-2. **Database Setup**: PostgreSQL with proper backups
-3. **Environment Variables**: Production-specific configurations
-4. **SSL Certificates**: Let's Encrypt for HTTPS
-5. **Monitoring Setup**: Prometheus and Grafana integration
+## Code Style and Patterns
 
-### Multi-Environment Support
-- **Development**: Local Docker Compose setup
-- **Staging**: VPS with production-like configuration
-- **Production**: Full production deployment with monitoring
+### Go Code Style
 
-### Docker Configurations
-- **docker-compose.yml**: Main production configuration
-- **docker-compose.dev.yml**: Development environment
-- **docker-compose.prod.yml**: Production-specific setup
-- **docker-compose.hostinger.yml**: VPS deployment
-- **docker-compose.dokploy.yml**: Dokploy deployment
-- **docker-compose.simple.yml**: Simplified setup
-- **docker-compose.cloud-livekit.yml**: Cloud LiveKit integration
-- **docker-compose-demo-seller.yml**: Demo seller setup
-- **docker-compose-add-services.yml**: Additional services
-
-## Security Considerations
-
-### Authentication & Authorization
-- JWT tokens with HS256 algorithm
-- Token expiration and refresh mechanisms
-- Protected endpoints with middleware validation
-- User session management with Redis
-
-### Data Protection
-- Environment variables for sensitive configuration
-- Database connection encryption
-- Input validation and sanitization
-- Rate limiting on API endpoints
-
-### Infrastructure Security
-- Docker container security best practices
-- Network isolation between services
-- SSL/TLS encryption for all communications
-- Regular security updates and patches
-
-## Common Development Patterns
-
-### Service Implementation Pattern
-1. **Configuration Loading**: Environment-based config with validation
-2. **Database Connection**: GORM with connection pooling
-3. **Router Setup**: Gin with middleware chain
-4. **Handler Functions**: Consistent error handling and logging
-5. **Graceful Shutdown**: Signal handling for clean service termination
-
-### Error Handling Pattern
+#### Import Organization
 ```go
+import (
+    // Standard library
+    "context"
+    "fmt"
+    "net/http"
+    "time"
+
+    // External dependencies
+    "github.com/gin-gonic/gin"
+    "github.com/google/uuid"
+    "go.uber.org/zap"
+
+    // Internal packages
+    "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
+    "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
+    "github.com/gmsas95/blytz-mvp/services/auth-service/internal/models"
+)
+```
+
+#### Naming Conventions
+- **Package names**: lowercase, single word when possible (`auth`, `models`, `handlers`)
+- **Struct names**: PascalCase (`User`, `AuthService`, `LoginRequest`)
+- **Interface names**: PascalCase, often ending with `er` (`Authenticator`, `Validator`)
+- **Function names**: PascalCase for exported, camelCase for unexported
+- **Constants**: UPPER_SNAKE_CASE for exported, camelCase for unexported
+- **Variables**: camelCase, short names for local scope (`u`, `ctx`, `req`)
+
+#### Error Handling Pattern
+```go
+// Use shared error types
+import "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
+
+// Create errors with proper types
 if err != nil {
-    logger.Error("Failed to process request", zap.Error(err))
-    c.JSON(http.StatusInternalServerError, gin.H{
-        "error": "internal_server_error",
-        "message": "Failed to process request",
-    })
+    return errors.ValidationError("INVALID_EMAIL", "Invalid email format")
+}
+
+// Handle errors in handlers
+if err := h.authService.RegisterUser(&user); err != nil {
+    utils.SendErrorResponse(c, err)
     return
 }
 ```
 
-### Database Operations
-- Use GORM for ORM functionality
-- Implement repository pattern for data access
-- Handle transactions for complex operations
-- Use database migrations for schema changes
-
-## Monitoring and Observability
-
-### Metrics Collection
-- Prometheus metrics for all services
-- Custom business metrics for auctions and bids
-- Database query performance metrics
-- HTTP request/response metrics
-
-### Logging Standards
-- Structured logging with Uber Zap
-- Contextual logging with request IDs
-- Log levels: debug, info, warn, error
-- Centralized log aggregation in production
-
-### Health Monitoring
-- Service health endpoints with detailed status
-- Database connectivity checks
-- External service dependency checks
-- Automatic alerting for service failures
-
-## Troubleshooting Guide
-
-### Common Issues
-1. **Service Won't Start**: Check Docker logs, database connectivity, environment variables
-2. **Database Connection Issues**: Verify PostgreSQL is running, check connection strings
-3. **Build Failures**: Ensure Go 1.25+ is installed, run `go mod tidy`, verify shared imports
-4. **Authentication Issues**: Check auth service on port 8084, verify JWT secrets
-5. **Frontend Build Issues**: Ensure Node.js 18+, check package.json dependencies
-
-### Debug Commands
-```bash
-# Check service logs
-docker-compose logs <service-name>
-
-# Test service connectivity
-curl http://localhost:<port>/health
-
-# Check database connectivity
-docker-compose exec postgres psql -U postgres -d auth_db
-
-# Validate shared package structure
-./verify-shared-migration.sh
-
-# Check Go workspace
-go work sync
-
-# Test individual service
-cd services/auth-service/cmd && go run main.go
-```
-
-## Performance Optimization
-
-### Database Optimization
-- Proper indexing on frequently queried columns
-- Connection pooling configuration
-- Query optimization and caching strategies
-- Database maintenance and cleanup procedures
-
-### Service Optimization
-- Efficient JSON serialization/deserialization
-- Connection reuse for external services
-- Memory management and garbage collection tuning
-- CPU profiling and bottleneck identification
-
-### Frontend Optimization
-- Code splitting and lazy loading
-- Image optimization and CDN usage
-- Caching strategies for API responses
-- Bundle size optimization
-
-## Shared Package Architecture (CRITICAL)
-
-**All shared packages now live in `/shared/pkg/` - this is MANDATORY for consistency.**
-
+#### Response Pattern
 ```go
-// ✅ CORRECT - Use pkg/ prefix
-import "github.com/gmsas95/blytz-mvp/shared/pkg/auth"
-import "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
+// Use shared response utilities
 import "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
 
-// ❌ INCORRECT - Will cause build failures
-import "github.com/gmsas95/blytz-mvp/shared/auth"
-import "github.com/gmsas95/blytz-mvp/shared/errors"
+// Success response
+utils.SendSuccessResponse(c, http.StatusOK, userData)
+
+// Error response
+utils.SendErrorResponse(c, errors.ErrInvalidRequestBody)
+
+// Custom response
+utils.SendJSON(c, http.StatusCreated, &utils.Response{
+    Success: true,
+    Message: "User created successfully",
+    Data: userData,
+})
 ```
 
-**Package Structure:**
-- `shared/pkg/auth/` - Authentication client and middleware
-- `shared/pkg/errors/` - Common error types and handling
-- `shared/pkg/utils/` - Utility functions (logger, validation, responses)
-- `shared/pkg/constants/` - Shared constants and configurations
-- `shared/pkg/middleware/` - Common middleware functions
+#### Service Structure Pattern
+```
+services/service-name/
+├── main.go                 # Entry point
+├── go.mod                  # Go module
+├── go.sum                  # Dependencies
+├── Dockerfile              # Docker configuration
+├── internal/               # Private application code
+│   ├── api/
+│   │   ├── handlers/       # HTTP handlers
+│   │   ├── routes/         # Route definitions
+│   │   └── middleware/     # HTTP middleware
+│   ├── services/           # Business logic
+│   ├── models/             # Data models
+│   ├── config/             # Configuration
+│   └── database/           # Database setup
+├── pkg/                    # Public library code
+├── tests/                  # Integration tests
+└── scripts/                # Utility scripts
+```
 
-## Authentication Integration Pattern
+### TypeScript/React Code Style
 
-**For any new microservice, follow this exact pattern:**
+#### Import Organization
+```typescript
+// React and Next.js
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import type { NextPage } from 'next';
 
+// External libraries
+import axios from 'axios';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+// Internal modules (alias @/)
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/use-auth';
+import { apiClient } from '@/lib/api-client';
+import type { User } from '@/types/user';
+```
+
+#### Component Pattern
+```typescript
+// Use functional components with TypeScript
+interface UserProfileProps {
+  userId: string;
+  onUpdate?: (user: User) => void;
+}
+
+const UserProfile: React.FC<UserProfileProps> = ({ userId, onUpdate }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Component logic here
+
+  return (
+    <div className="user-profile">
+      {/* JSX content */}
+    </div>
+  );
+};
+
+export default UserProfile;
+```
+
+## Testing Patterns
+
+### Go Testing
 ```go
+// Use testify for assertions
+import (
+    "testing"
+    "github.com/stretchr/testify/assert"
+    "github.com/stretchr/testify/mock"
+)
+
+func TestAuthService_RegisterUser(t *testing.T) {
+    // Arrange
+    service := NewAuthService(testDB, testConfig)
+    user := &models.User{
+        Email: "test@example.com",
+        Password: "password123",
+    }
+
+    // Act
+    err := service.RegisterUser(user)
+
+    // Assert
+    assert.NoError(t, err)
+    
+    // Verify user was created
+    createdUser, err := service.GetUserByEmail(user.Email)
+    assert.NoError(t, err)
+    assert.Equal(t, user.Email, createdUser.Email)
+}
+```
+
+### React Testing
+```typescript
+// Use React Testing Library
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { AuthProvider } from '@/contexts/auth-context';
+import { LoginForm } from '@/components/auth/login-form';
+
+test('should submit login form', async () => {
+    render(
+        <AuthProvider>
+            <LoginForm />
+        </AuthProvider>
+    );
+
+    fireEvent.change(screen.getByLabelText(/email/i), {
+        target: { value: 'test@example.com' }
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /login/i }));
+
+    await waitFor(() => {
+        expect(screen.getByText(/welcome/i)).toBeInTheDocument();
+    });
+});
+```
+
+## Configuration Management
+
+### Environment Variables
+```bash
+# Go services use .env files
+DATABASE_URL=postgresql://user:pass@localhost:5432/db
+JWT_SECRET=your-secret-key
+REDIS_URL=redis://localhost:6379
+PORT=8085
+
+# Frontend uses .env.local
+NEXT_PUBLIC_API_URL=http://localhost:8085
+NEXT_PUBLIC_WS_URL=ws://localhost:8085
+```
+
+### Go Configuration Pattern
+```go
+type Config struct {
+    DatabaseURL string `env:"DATABASE_URL" envDefault:"localhost:5432"`
+    JWTSecret   string `env:"JWT_SECRET" envDefault:"secret"`
+    Port        string `env:"PORT" envDefault:"8085"`
+}
+
+func LoadConfig() (*Config, error) {
+    cfg := &Config{}
+    if err := env.Parse(cfg); err != nil {
+        return nil, err
+    }
+    return cfg, nil
+}
+```
+
+## Database Patterns
+
+### GORM Models
+```go
+type User struct {
+    ID        string    `gorm:"primaryKey;type:uuid;default:gen_random_uuid()" json:"id"`
+    Email     string    `gorm:"uniqueIndex;not null" json:"email"`
+    Password  string    `gorm:"not null" json:"-"`
+    Name      string    `gorm:"not null" json:"name"`
+    Role      string    `gorm:"default:user" json:"role"`
+    IsActive  bool      `gorm:"default:true" json:"is_active"`
+    CreatedAt time.Time `json:"created_at"`
+    UpdatedAt time.Time `json:"updated_at"`
+}
+
+// Auto-migration
+db.AutoMigrate(&User{})
+```
+
+## API Design Patterns
+
+### REST API Structure
+```go
+// Standard route patterns
+GET    /api/v1/users           // List users
+GET    /api/v1/users/:id       // Get user
+POST   /api/v1/users           // Create user
+PUT    /api/v1/users/:id       // Update user
+DELETE /api/v1/users/:id       // Delete user
+
+// Nested resources
+GET    /api/v1/users/:id/orders    // Get user's orders
+POST   /api/v1/users/:id/orders    // Create order for user
+```
+
+### Request/Response Patterns
+```go
+// Request DTOs
+type CreateUserRequest struct {
+    Name     string `json:"name" binding:"required,min=2,max=100"`
+    Email    string `json:"email" binding:"required,email"`
+    Password string `json:"password" binding:"required,min=6"`
+}
+
+// Response DTOs
+type UserResponse struct {
+    ID    string `json:"id"`
+    Name  string `json:"name"`
+    Email string `json:"email"`
+    Role  string `json:"role"`
+}
+```
+
+## Security Patterns
+
+### Authentication Middleware
+```go
+// Use shared auth middleware
 import "github.com/gmsas95/blytz-mvp/shared/pkg/auth"
 
-// In router setup
-authClient := auth.NewAuthClient("http://auth-service:8084")
-
-// Public routes (no auth required)
-public := router.Group("/api/v1/public")
-{
-    public.GET("/health", healthHandler)
-}
-
-// Protected routes (auth required)
-protected := router.Group("/api/v1/protected")
+// Protected routes
+protected := router.Group("/api/v1")
 protected.Use(auth.GinAuthMiddleware(authClient))
 {
-    protected.POST("/create", createHandler)  // Requires auth
+    protected.GET("/profile", h.GetProfile)
+    protected.PUT("/profile", h.UpdateProfile)
 }
-
-// In handlers
-userID := c.GetString("userID")  // Get authenticated user
 ```
 
-## Service Communication
-- **Auth Service**: Port 8084 - JWT token validation
-- **Service-to-Service**: Use shared auth client for internal calls
-- **External APIs**: All protected endpoints require Bearer token
-- **Gateway**: Port 8080 - Routes requests to appropriate services
+### Input Validation
+```go
+// Use Gin binding for validation
+type CreateUserRequest struct {
+    Name     string `json:"name" binding:"required,min=2,max=100"`
+    Email    string `json:"email" binding:"required,email"`
+    Password string `json:"password" binding:"required,min=6,containsany=!@#$%^&*"`
+}
 
-## Environment Configuration
+// Custom validation
+func ValidatePassword(fl validator.FieldLevel) bool {
+    password := fl.Field().String()
+    return len(password) >= 8 && containsUpper(password) && containsNumber(password)
+}
+```
 
-### Required Environment Files
-- `.env` - Main environment configuration
-- `.env.dev` - Development environment
-- `.env.production` - Production environment
-- `.env.staging` - Staging environment
+## Performance Patterns
 
-### Key Environment Variables
-- `DATABASE_URL` - PostgreSQL connection string
-- `JWT_SECRET` - JWT signing secret
-- `BETTER_AUTH_SECRET` - Better Auth secret
-- `REDIS_URL` - Redis connection string
-- `FIUU_*` - Payment gateway configuration
+### Database Queries
+```go
+// Use prepared statements
+stmt, err := db.Prepare("SELECT * FROM users WHERE email = $1")
+if err != nil {
+    return err
+}
+defer stmt.Close()
 
-## Build and Deployment Scripts
+// Use transactions
+tx := db.Begin()
+defer func() {
+    if r := recover(); r != nil {
+        tx.Rollback()
+    }
+}()
 
-### Core Scripts
-- `test-microservices.sh` - Test service startup and compilation
-- `validate-architecture.sh` - Validate overall architecture
-- `verify-shared-migration.sh` - Ensure shared package consistency
-- `setup-go-env.sh` - Setup Go environment
-- `deploy-all-services.sh` - Deploy all services
-- `start-emulator.sh` - Start Firebase emulators
+// Batch operations
+var users []User
+db.FindInBatches(&users, 100, func(tx *gorm.DB, batch int) error {
+    // Process batch
+    return nil
+})
+```
 
-### CI/CD Pipeline
-- GitHub Actions workflow for automated testing
-- Makefile for local CI/CD simulation
-- Dokploy configuration for VPS deployment
-- Multi-stage Docker builds for optimization
+### Caching Pattern
+```go
+// Redis caching
+func (s *UserService) GetUserByID(id string) (*User, error) {
+    // Try cache first
+    cached, err := s.redis.Get(ctx, "user:"+id).Result()
+    if err == nil {
+        var user User
+        json.Unmarshal([]byte(cached), &user)
+        return &user, nil
+    }
 
-This guide serves as the comprehensive reference for AI agents working on the Blytz platform. Always refer to the actual codebase and existing patterns when implementing new features or fixing issues.
+    // Fallback to database
+    user, err := s.userRepo.FindByID(id)
+    if err != nil {
+        return nil, err
+    }
+
+    // Cache the result
+    data, _ := json.Marshal(user)
+    s.redis.Set(ctx, "user:"+id, data, time.Hour)
+
+    return user, nil
+}
+```
+
+## Development Workflow
+
+### Git Workflow
+```bash
+# Feature branch workflow
+git checkout -b feature/user-authentication
+git add .
+git commit -m "feat: implement JWT authentication"
+git push origin feature/user-authentication
+
+# Commit message format
+feat: new feature
+fix: bug fix
+docs: documentation
+style: formatting
+refactor: code refactoring
+test: adding tests
+chore: maintenance
+```
+
+### Local Development Setup
+```bash
+# Start all services
+docker-compose up -d
+
+# Start individual service
+cd services/auth-service
+go run main.go
+
+# Run tests
+./scripts/test.sh
+
+# Check service health
+curl http://localhost:8085/health
+```
+
+## Common Issues and Solutions
+
+### Go Module Issues
+```bash
+# Fix module dependencies
+go mod tidy
+go mod download
+
+# Fix workspace issues
+go work sync
+
+# Clear module cache
+go clean -modcache
+```
+
+### Database Connection Issues
+```bash
+# Check database connection
+psql $DATABASE_URL
+
+# Reset database
+go run scripts/reset-db.go
+
+# Run migrations
+go run scripts/migrate.go up
+```
+
+### Frontend Build Issues
+```bash
+# Clear Next.js cache
+rm -rf .next
+
+# Reinstall dependencies
+rm -rf node_modules package-lock.json
+npm install
+
+# Fix TypeScript issues
+npm run type-check
+```
+
+## Monitoring and Debugging
+
+### Logging Pattern
+```go
+// Use structured logging with zap
+import "go.uber.org/zap"
+
+logger, _ := zap.NewProduction()
+logger.Info("User login",
+    zap.String("user_id", userID),
+    zap.String("email", email),
+    zap.Duration("duration", time.Since(start)),
+)
+```
+
+### Health Checks
+```go
+// Standard health endpoint
+func (h *HealthHandler) Check(c *gin.Context) {
+    status := utils.NewHealthStatus("ok")
+    status.AddService("database", h.checkDatabase())
+    status.AddService("redis", h.checkRedis())
+    
+    utils.SendSuccessResponse(c, http.StatusOK, status)
+}
+```
+
+## Deployment
+
+### Docker Pattern
+```dockerfile
+# Multi-stage builds
+FROM golang:1.25-alpine AS builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN go build -o service .
+
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+WORKDIR /root/
+COPY --from=builder /app/service .
+EXPOSE 8085
+CMD ["./service"]
+```
+
+### Environment-Specific Config
+```go
+// Load config based on environment
+func LoadConfig() (*Config, error) {
+    env := os.Getenv("ENV")
+    if env == "production" {
+        return loadProductionConfig()
+    }
+    return loadDevelopmentConfig()
+}
+```
+
+---
+
+## Quick Reference Commands
+
+### Essential Commands
+```bash
+# Go services
+go run main.go                    # Run service
+go test ./... -v                 # Run tests
+go build .                       # Build service
+go mod tidy                      # Clean dependencies
+
+# Frontend
+npm run dev                      # Start dev server
+npm run build                    # Build for production
+npm run test                     # Run tests
+npm run lint                     # Check code quality
+
+# Testing
+./scripts/test.sh                # Test all services
+npm run test:e2e                 # E2E tests
+
+# Docker
+docker-compose up -d             # Start all services
+docker-compose logs -f service    # View logs
+docker-compose restart service   # Restart service
+```
+
+### Service Ports
+- Auth Service: 8085
+- Product Service: 8086
+- Auction Service: 8087
+- Order Service: 8088
+- Payment Service: 8089
+- Chat Service: 8090
+- Logistics Service: 8091
+- Gateway Service: 8092
+- LiveKit Service: 8093
+- Notification Service: 8094
+- Frontend: 3000
+
+This guide should help AI agents understand the codebase structure, patterns, and workflows for effective development assistance.

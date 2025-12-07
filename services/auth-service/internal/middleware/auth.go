@@ -21,44 +21,31 @@ func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			utils.SendErrorResponse(c, shared_errors.ErrUnauthorized)
+			shared_utils.SendErrorResponse(c, shared_errors.ErrUnauthorized)
 			c.Abort()
 			return
 		}
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 		if tokenString == authHeader {
-			utils.SendErrorResponse(c, shared_errors.ErrUnauthorized)
+			shared_utils.SendErrorResponse(c, shared_errors.ErrUnauthorized)
 			c.Abort()
 			return
 		}
 
-		claims := &models.Claims{}
-
-		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			return []byte(authService.GetConfig().JWTSecret), nil
-		})
-
-		if err != nil {
-			if err == jwt.ErrSignatureInvalid {
-				utils.SendErrorResponse(c, shared_errors.ErrUnauthorized)
-			} else {
-				utils.SendErrorResponse(c, shared_errors.ValidationError("BAD_REQUEST", "Bad Request"))
-			}
+		// Validate token using the new database-backed service
+		tokenResponse, err := authService.ValidateToken(tokenString)
+		if err != nil || !tokenResponse.Valid {
+			shared_utils.SendErrorResponse(c, shared_errors.ErrUnauthorized)
 			c.Abort()
 			return
 		}
 
-		if !token.Valid {
-			utils.SendErrorResponse(c, shared_errors.ErrUnauthorized)
-			c.Abort()
-			return
-		}
+		// Set user context with validated token data
+		c.Set("userID", tokenResponse.UserID)
+		c.Set("userEmail", tokenResponse.Email)
+		c.Set("userRole", tokenResponse.Role)
 
-		// Debug logging
-		fmt.Printf("DEBUG: AuthMiddleware - userID: %s, Email: %s\n", claims.UserID, claims.Email)
-
-		c.Set("userID", claims.UserID)
 		c.Next()
 	}
 }
