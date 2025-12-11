@@ -22,6 +22,7 @@ type Order struct {
 	ShippingAddress Address        `json:"shipping_address" gorm:"embedded;embeddedPrefix:shipping_"`
 	BillingAddress  Address        `json:"billing_address" gorm:"embedded;embeddedPrefix:billing_"`
 	Notes           string         `json:"notes,omitempty"`
+	OrderItems      []OrderItem    `json:"order_items,omitempty" gorm:"foreignKey:OrderID"`
 	CreatedAt       time.Time      `json:"created_at"`
 	UpdatedAt       time.Time      `json:"updated_at"`
 	DeletedAt       gorm.DeletedAt `json:"-" gorm:"index"`

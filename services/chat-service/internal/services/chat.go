@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/gmsas95/blytz-mvp/services/chat-service/internal/models"
+	sharedErrors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
 )
 
 type ChatService struct {
@@ -378,7 +379,7 @@ func (s *ChatService) AddRoomMember(ctx context.Context, roomID, userID string, 
 			RoomID:    roomID,
 			UserID:    "system",
 			Content:   fmt.Sprintf(`{"action": "members_added", "count": %d, "added_by": "%s"}`, len(req.UserIDs), userID),
-			Type:      models.MessageTypeUserJoin,
+			Type:      "user_join",
 			Timestamp: time.Now(),
 		}
 		if err := tx.Create(systemMessage).Error; err != nil {
@@ -464,7 +465,7 @@ func (s *ChatService) RemoveRoomMember(ctx context.Context, roomID, userID, memb
 			RoomID:    roomID,
 			UserID:    "system",
 			Content:   fmt.Sprintf(`{"action": "%s", "user_id": "%s", "removed_by": "%s"}`, actionType, memberID, userID),
-			Type:      models.MessageTypeUserLeave,
+			Type:      models.MessageUserLeave,
 			Timestamp: now,
 		}
 		if err := tx.Create(systemMessage).Error; err != nil {
@@ -936,19 +937,19 @@ func (s *ChatService) GetTypingIndicators(ctx context.Context, roomID string) ([
 // validateCreateRoomRequest validates room creation request
 func (s *ChatService) validateCreateRoomRequest(req *models.CreateRoomRequest) error {
 	if req.Name == "" {
-		return fmt.Errorf("room name is required")
+		return sharedErrors.NewValidationError("MISSING_ROOM_NAME", "Room name is required")
 	}
 	if len(req.Name) < 2 || len(req.Name) > 100 {
-		return fmt.Errorf("room name must be between 2 and 100 characters")
+		return sharedErrors.NewValidationError("INVALID_ROOM_NAME", "Room name must be between 2 and 100 characters")
 	}
 	if req.MaxMembers <= 0 || req.MaxMembers > 1000 {
-		return fmt.Errorf("max members must be between 1 and 1000")
+		return sharedErrors.NewValidationError("INVALID_MAX_MEMBERS", "Max members must be between 1 and 1000")
 	}
 	if len(req.Members) == 0 {
-		return fmt.Errorf("at least one member is required")
+		return sharedErrors.NewValidationError("MISSING_MEMBERS", "At least one member is required")
 	}
 	if len(req.Members) >= req.MaxMembers {
-		return fmt.Errorf("members cannot exceed max members")
+		return sharedErrors.NewValidationError("TOO_MANY_MEMBERS", "Members cannot exceed max members")
 	}
 	return nil
 }

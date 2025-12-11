@@ -24,6 +24,11 @@ func NewAuctionHandler(auctionService *services.AuctionService, logger *zap.Logg
 	}
 }
 
+// GetAuctionService returns the auction service instance
+func (h *AuctionHandler) GetAuctionService() *services.AuctionService {
+	return h.auctionService
+}
+
 // === AUCTION MANAGEMENT HANDLERS ===
 
 // CreateAuction creates new auction

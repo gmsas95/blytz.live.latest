@@ -15,6 +15,7 @@ import (
 	"go.uber.org/zap"
 
 	shared_utils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
+	shared_errors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
 	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/api/handlers"
 	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/middleware"
 	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/services"
@@ -67,34 +68,17 @@ func main() {
 	// Setup Gin router
 	router := gin.Default()
 
-	// CORS middleware
-	router.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization")
-		c.Header("Access-Control-Expose-Headers", "Content-Length")
-		c.Header("Access-Control-Allow-Credentials", "true")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-
-		c.Next()
-	})
+	// CORS middleware using shared package
+	router.Use(shared_utils.CORSMiddleware())
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, shared_utils.Response{
-			Success: true,
-			Message: "Auth service is healthy and working",
-			Data: map[string]interface{}{
-				"service":  "auth-service",
-				"version":  "v2.0-database",
-				"status":   "healthy",
-				"database": "connected",
-				"time":     time.Now(),
-			},
+		shared_utils.SendSuccessResponse(c, http.StatusOK, map[string]interface{}{
+			"service":  "auth-service",
+			"version":  "v2.0-database",
+			"status":   "healthy",
+			"database": "connected",
+			"time":     time.Now(),
 		})
 	})
 
@@ -126,9 +110,8 @@ func main() {
 		{
 			admin.GET("/users", func(c *gin.Context) {
 				// TODO: Implement user listing for admin
-				c.JSON(http.StatusOK, shared_utils.Response{
-					Success: true,
-					Message: "Admin user listing endpoint",
+				shared_utils.SendSuccessResponse(c, http.StatusOK, map[string]interface{}{
+					"message": "Admin user listing endpoint",
 				})
 			})
 		}
@@ -137,7 +120,7 @@ func main() {
 	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8085"
+		port = "8084"  // Fixed to use consistent port 8084 as per docker-compose.yml
 	}
 
 	logger.Info("Auth Service starting",

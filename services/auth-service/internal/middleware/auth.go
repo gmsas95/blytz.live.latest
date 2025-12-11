@@ -21,14 +21,14 @@ func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			shared_utils.SendErrorResponse(c, shared_errors.ErrUnauthorized)
+			utils.SendErrorResponse(c, shared_errors.ErrUnauthorized)
 			c.Abort()
 			return
 		}
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 		if tokenString == authHeader {
-			shared_utils.SendErrorResponse(c, shared_errors.ErrUnauthorized)
+			utils.SendErrorResponse(c, shared_errors.ErrUnauthorized)
 			c.Abort()
 			return
 		}
@@ -36,7 +36,7 @@ func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
 		// Validate token using the new database-backed service
 		tokenResponse, err := authService.ValidateToken(tokenString)
 		if err != nil || !tokenResponse.Valid {
-			shared_utils.SendErrorResponse(c, shared_errors.ErrUnauthorized)
+			utils.SendErrorResponse(c, shared_errors.ErrUnauthorized)
 			c.Abort()
 			return
 		}
@@ -143,22 +143,6 @@ func RoleMiddleware(requiredRoles ...string) gin.HandlerFunc {
 	}
 }
 
-// CORSMiddleware handles Cross-Origin Resource Sharing
-func CORSMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-
-		c.Next()
-	}
-}
 
 // RequestIDMiddleware adds a unique request ID to each request
 func RequestIDMiddleware() gin.HandlerFunc {

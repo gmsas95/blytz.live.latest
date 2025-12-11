@@ -105,7 +105,7 @@ func (s *NinjaVanService) CreateNinjaVanShipment(ctx context.Context, userID str
 
 	if err := s.db.Create(shipment).Error; err != nil {
 		s.logger.Error("Failed to create shipment record", zap.Error(err))
-		return nil, errors.ErrInternalServer
+		return nil, errors.NewInternalError("SHIPMENT_CREATE_FAILED", "Failed to create shipment record")
 	}
 
 	// Create initial tracking event
@@ -136,9 +136,9 @@ func (s *NinjaVanService) CancelNinjaVanShipment(ctx context.Context, shipmentID
 	var shipment models.Shipment
 	if err := s.db.Where("id = ? AND user_id = ?", shipmentID, userID).First(&shipment).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return errors.ErrNotFound
+			return errors.NewNotFoundError("SHIPMENT_NOT_FOUND", "Shipment not found")
 		}
-		return errors.ErrInternalServer
+		return errors.NewInternalError("SHIPMENT_GET_FAILED", "Failed to get shipment")
 	}
 
 	// Cancel with Ninja Van
@@ -151,7 +151,7 @@ func (s *NinjaVanService) CancelNinjaVanShipment(ctx context.Context, shipmentID
 	shipment.Status = string(models.ShipmentStatusReturned)
 	if err := s.db.Save(&shipment).Error; err != nil {
 		s.logger.Error("Failed to update shipment status", zap.Error(err))
-		return errors.ErrInternalServer
+		return errors.NewInternalError("SHIPMENT_STATUS_UPDATE_FAILED", "Failed to update shipment status")
 	}
 
 	// Create tracking event

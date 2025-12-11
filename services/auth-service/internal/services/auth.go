@@ -13,6 +13,7 @@ import (
 	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/config"
 	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/models"
 	shared_errors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
+	shared_utils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
 )
 
 // AuthService provides authentication related services
@@ -90,23 +91,12 @@ func (s *AuthService) GetUserByEmail(email string) (*models.User, error) {
 
 // ValidateToken validates a JWT token and returns the claims
 func (s *AuthService) ValidateToken(ctx context.Context, tokenString string) (*models.ValidateTokenResponse, error) {
-	claims := &models.Claims{}
-
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(s.config.JWTSecret), nil
-	})
-
+	// Use shared JWT validation utility
+	claims, err := shared_utils.ValidateJWT(tokenString, s.config.JWTSecret)
 	if err != nil {
 		return &models.ValidateTokenResponse{
 			Valid:   false,
 			Message: "Invalid token: " + err.Error(),
-		}, nil
-	}
-
-	if !token.Valid {
-		return &models.ValidateTokenResponse{
-			Valid:   false,
-			Message: "Token is not valid",
 		}, nil
 	}
 
@@ -126,16 +116,8 @@ func (s *AuthService) userExists(email string) bool {
 
 // generateJWT generates a JWT token for a user
 func (s *AuthService) generateJWT(user *models.User) (string, error) {
-	claims := &models.Claims{
-		UserID: user.ID,
-		Email:  user.Email,
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)),
-		},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(s.config.JWTSecret))
+	// Use shared JWT generation utility
+	return shared_utils.GenerateJWT(user.ID, user.Email, s.config.JWTSecret, time.Hour*24)
 }
 
 // GetUserByID gets a user by ID

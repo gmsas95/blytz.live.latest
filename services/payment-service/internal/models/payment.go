@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+	
+	"gorm.io/gorm"
 )
 
 // Payment Status Constants
@@ -99,8 +101,8 @@ type PaymentRefund struct {
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 	
-	// Relationships
-	Payment       *Payment `json:"payment,omitempty" gorm:"foreignKey:PaymentID"`
+	// Relationships - temporarily removed to avoid migration issues
+	// Payment       *Payment `json:"payment,omitempty" gorm:"foreignKey:PaymentID"`
 }
 
 // Webhook Log Model
@@ -118,8 +120,8 @@ type WebhookLog struct {
 	UserAgent   string    `json:"user_agent" gorm:""`
 	CreatedAt  time.Time `json:"created_at"`
 	
-	// Relationships
-	Payment    *Payment `json:"payment,omitempty" gorm:"foreignKey:PaymentID"`
+	// Relationships - temporarily removed to avoid migration issues
+	// Payment    *Payment `json:"payment,omitempty" gorm:"foreignKey:PaymentID"`
 }
 
 // Payment Method Model (from Fiuu)

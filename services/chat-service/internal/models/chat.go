@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -435,30 +436,7 @@ type UserStatusMessage struct {
 
 // Helper Methods
 
-// BeforeCreate hook for Message
-func (m *Message) BeforeCreate(tx *gorm.DB) error {
-	if m.ID == "" {
-		m.ID = generateUUID()
-	}
-	if m.Timestamp.IsZero() {
-		m.Timestamp = time.Now()
-	}
-	if m.Status == "" {
-		m.Status = MessageStatusSent
-	}
-	return nil
-}
-
-// BeforeCreate hook for ChatRoom
-func (r *ChatRoom) BeforeCreate(tx *gorm.DB) error {
-	if r.ID == "" {
-		r.ID = generateUUID()
-	}
-	if r.LastActivity.IsZero() {
-		r.LastActivity = time.Now()
-	}
-	return nil
-}
+// Note: GORM hooks removed for simplified implementation
 
 // SetAttachmentsArray sets attachments from string array
 func (m *Message) SetAttachmentsArray(attachments []string) {

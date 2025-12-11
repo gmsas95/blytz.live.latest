@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,6 +8,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	shared_utils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
+	shared_errors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
 )
 
 // User struct for authentication
@@ -35,13 +36,6 @@ type RegisterRequest struct {
 	Password string `json:"password" binding:"required,min=6,max=100"`
 }
 
-// Response struct for API responses
-type Response struct {
-	Success bool        `json:"success"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
-	Error   string      `json:"error,omitempty"`
-}
 
 // Mock user database
 var users = []User{
@@ -65,42 +59,27 @@ var users = []User{
 	},
 }
 
-// JWT mock - simple token generation
-func generateJWT(userID string) string {
-	return fmt.Sprintf("mock-jwt-token-%s-%d", userID, time.Now().Unix())
+// JWT mock - simple token generation using shared package
+func generateJWT(userID string) (string, error) {
+	// For mock version, we'll create a simple JWT token
+	// In production, this would use the shared JWT utilities
+	return shared_utils.GenerateMockJWT(userID), nil
 }
 
 func main() {
 	// Create Gin router
 	r := gin.Default()
 
-	// CORS middleware
-	r.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization")
-		c.Header("Access-Control-Expose-Headers", "Content-Length")
-		c.Header("Access-Control-Allow-Credentials", "true")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-
-		c.Next()
-	})
+	// CORS middleware using shared package
+	r.Use(shared_utils.CORSMiddleware())
 
 	// Health check endpoint
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, Response{
-			Success: true,
-			Message: "Auth service is healthy and working",
-			Data: map[string]interface{}{
-				"service": "auth-service",
-				"version": "v2.0-working",
-				"status":  "healthy",
-				"time":    time.Now(),
-			},
+		shared_utils.SendSuccessResponse(c, http.StatusOK, map[string]interface{}{
+			"service": "auth-service",
+			"version": "v2.0-working",
+			"status":  "healthy",
+			"time":    time.Now(),
 		})
 	})
 
@@ -108,22 +87,14 @@ func main() {
 	r.POST("/api/v1/auth/register", func(c *gin.Context) {
 		var req RegisterRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, Response{
-				Success: false,
-				Message: "Invalid registration data",
-				Error:   err.Error(),
-			})
+			shared_utils.SendErrorResponse(c, shared_errors.ErrInvalidRequestBody)
 			return
 		}
 
 		// Check if user already exists
 		for _, user := range users {
 			if strings.ToLower(user.Email) == strings.ToLower(req.Email) {
-				c.JSON(http.StatusConflict, Response{
-					Success: false,
-					Message: "Email already registered",
-					Error:   "User with this email already exists",
-				})
+				shared_utils.SendErrorResponse(c, shared_errors.ConflictError("USER_EXISTS", "Email already registered"))
 				return
 			}
 		}
@@ -141,17 +112,13 @@ func main() {
 
 		users = append(users, newUser)
 
-		c.JSON(http.StatusCreated, Response{
-			Success: true,
-			Message: "Registration successful",
-			Data: map[string]interface{}{
-				"user": map[string]interface{}{
-					"id":     newUser.ID,
-					"name":   newUser.Name,
-					"email":  newUser.Email,
-					"role":   newUser.Role,
-					"status": newUser.Status,
-				},
+		shared_utils.SendSuccessResponse(c, http.StatusCreated, map[string]interface{}{
+			"user": map[string]interface{}{
+				"id":     newUser.ID,
+				"name":   newUser.Name,
+				"email":  newUser.Email,
+				"role":   newUser.Role,
+				"status": newUser.Status,
 			},
 		})
 	})
@@ -160,11 +127,7 @@ func main() {
 	r.POST("/api/v1/auth/login", func(c *gin.Context) {
 		var req LoginRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, Response{
-				Success: false,
-				Message: "Invalid login request",
-				Error:   err.Error(),
-			})
+			shared_utils.SendErrorResponse(c, shared_errors.ErrInvalidRequestBody)
 			return
 		}
 
@@ -180,40 +143,35 @@ func main() {
 		}
 
 		if authenticatedUser == nil {
-			c.JSON(http.StatusUnauthorized, Response{
-				Success: false,
-				Message: "Invalid email or password",
-				Error:   "Authentication failed",
-			})
+			shared_utils.SendErrorResponse(c, shared_errors.AuthenticationError("INVALID_CREDENTIALS", "Invalid email or password"))
 			return
 		}
 
 		// Generate JWT token (mock)
-		token := generateJWT(authenticatedUser.ID)
+		token, err := generateJWT(authenticatedUser.ID)
+		if err != nil {
+			shared_utils.SendErrorResponse(c, shared_errors.InternalServerError("TOKEN_GENERATION_FAILED", "Failed to generate token"))
+			return
+		}
 
-		c.JSON(http.StatusOK, Response{
-			Success: true,
-			Message: "Login successful",
-			Data: map[string]interface{}{
-				"user": map[string]interface{}{
-					"id":     authenticatedUser.ID,
-					"name":   authenticatedUser.Name,
-					"email":  authenticatedUser.Email,
-					"role":   authenticatedUser.Role,
-					"status": authenticatedUser.Status,
-				},
-				"token":      token,
-				"token_type": "Bearer",
-				"expires_in": 3600,
+		shared_utils.SendSuccessResponse(c, http.StatusOK, map[string]interface{}{
+			"user": map[string]interface{}{
+				"id":     authenticatedUser.ID,
+				"name":   authenticatedUser.Name,
+				"email":  authenticatedUser.Email,
+				"role":   authenticatedUser.Role,
+				"status": authenticatedUser.Status,
 			},
+			"token":      token,
+			"token_type": "Bearer",
+			"expires_in": 3600,
 		})
 	})
 
 	// Logout endpoint
 	r.POST("/api/v1/auth/logout", func(c *gin.Context) {
-		c.JSON(http.StatusOK, Response{
-			Success: true,
-			Message: "Logout successful",
+		shared_utils.SendSuccessResponse(c, http.StatusOK, map[string]interface{}{
+			"message": "Logout successful",
 		})
 	})
 
@@ -221,41 +179,25 @@ func main() {
 	r.GET("/api/v1/auth/profile", func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, Response{
-				Success: false,
-				Message: "Authorization header required",
-				Error:   "No token provided",
-			})
+			shared_utils.SendErrorResponse(c, shared_errors.AuthenticationError("NO_TOKEN", "Authorization header required"))
 			return
 		}
 
 		// For demo, return first user
 		if len(users) > 0 {
-			c.JSON(http.StatusOK, Response{
-				Success: true,
-				Message: "Profile retrieved successfully",
-				Data: map[string]interface{}{
-					"user": users[0],
-				},
+			shared_utils.SendSuccessResponse(c, http.StatusOK, map[string]interface{}{
+				"user": users[0],
 			})
 		} else {
-			c.JSON(http.StatusNotFound, Response{
-				Success: false,
-				Message: "User not found",
-				Error:   "No users in database",
-			})
+			shared_utils.SendErrorResponse(c, shared_errors.NotFoundError("NO_USERS", "No users in database"))
 		}
 	})
 
 	// Users list endpoint (admin)
 	r.GET("/api/v1/users", func(c *gin.Context) {
-		c.JSON(http.StatusOK, Response{
-			Success: true,
-			Message: "Users retrieved successfully",
-			Data: map[string]interface{}{
-				"users": users,
-				"count": len(users),
-			},
+		shared_utils.SendSuccessResponse(c, http.StatusOK, map[string]interface{}{
+			"users": users,
+			"count": len(users),
 		})
 	})
 

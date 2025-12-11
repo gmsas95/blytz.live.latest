@@ -3,7 +3,7 @@
 
 # Include only what's needed for deployment
 !docker-compose.yml
-!.env*
+# .env* files are excluded to prevent overriding docker-compose environment variables
 !services/
 !frontend/
 !frontend-demo/

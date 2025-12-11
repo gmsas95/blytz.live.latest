@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"io"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -27,13 +28,13 @@ func NewNinjaVanHandler(ninjaVanService *services.NinjaVanService, logger *zap.L
 func (h *NinjaVanHandler) CreateNinjaVanShipment(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		utils.ErrorResponse(c, errors.ErrUnauthorized)
+		utils.SendErrorResponse(c, errors.ErrUnauthorizedError)
 		return
 	}
 
 	var req services.CreateShipmentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ErrorResponse(c, errors.ErrInvalidRequestBody)
+		utils.SendErrorResponse(c, errors.ErrInvalidRequestBodyError)
 		return
 	}
 
@@ -43,39 +44,39 @@ func (h *NinjaVanHandler) CreateNinjaVanShipment(c *gin.Context) {
 	shipment, err := h.ninjaVanService.CreateNinjaVanShipment(c.Request.Context(), userID, &req)
 	if err != nil {
 		h.logger.Error("Failed to create Ninja Van shipment", zap.Error(err))
-		utils.ErrorResponse(c, err)
+		utils.SendErrorResponse(c, err)
 		return
 	}
 
 	response := h.mapShipmentToResponse(shipment)
-	utils.SuccessResponse(c, response)
+	utils.SendSuccessResponse(c, http.StatusOK, response)
 }
 
 func (h *NinjaVanHandler) CancelNinjaVanShipment(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		utils.ErrorResponse(c, errors.ErrUnauthorized)
+		utils.SendErrorResponse(c, errors.ErrUnauthorizedError)
 		return
 	}
 
 	shipmentID := c.Param("id")
 	if shipmentID == "" {
-		utils.ErrorResponse(c, errors.ErrInvalidRequest)
+		utils.SendErrorResponse(c, errors.NewValidationError("INVALID_REQUEST", "Invalid request"))
 		return
 	}
 
 	err := h.ninjaVanService.CancelNinjaVanShipment(c.Request.Context(), shipmentID, userID)
 	if err != nil {
-		if err == errors.ErrNotFound {
-			utils.ErrorResponse(c, errors.ErrNotFound)
+		if appErr, ok := errors.IsAppError(err); ok && appErr.Type == errors.NotFoundError {
+			utils.SendErrorResponse(c, err)
 			return
 		}
 		h.logger.Error("Failed to cancel Ninja Van shipment", zap.Error(err))
-		utils.ErrorResponse(c, err)
+		utils.SendErrorResponse(c, err)
 		return
 	}
 
-	utils.SuccessResponse(c, gin.H{
+	utils.SendSuccessResponse(c, http.StatusOK, gin.H{
 		"success": true,
 		"message": "Shipment cancelled successfully",
 	})
@@ -84,41 +85,41 @@ func (h *NinjaVanHandler) CancelNinjaVanShipment(c *gin.Context) {
 func (h *NinjaVanHandler) GetShippingCost(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		utils.ErrorResponse(c, errors.ErrUnauthorized)
+		utils.SendErrorResponse(c, errors.ErrUnauthorizedError)
 		return
 	}
 
 	var req services.CreateShipmentRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.ErrorResponse(c, errors.ErrInvalidRequestBody)
+		utils.SendErrorResponse(c, errors.ErrInvalidRequestBodyError)
 		return
 	}
 
 	tariff, err := h.ninjaVanService.GetShippingCost(c.Request.Context(), &req)
 	if err != nil {
 		h.logger.Error("Failed to get shipping cost", zap.Error(err))
-		utils.ErrorResponse(c, err)
+		utils.SendErrorResponse(c, err)
 		return
 	}
 
-	utils.SuccessResponse(c, tariff)
+	utils.SendSuccessResponse(c, http.StatusOK, tariff)
 }
 
 func (h *NinjaVanHandler) GetPUDOPoints(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		utils.ErrorResponse(c, errors.ErrUnauthorized)
+		utils.SendErrorResponse(c, errors.ErrUnauthorizedError)
 		return
 	}
 
 	pudoPoints, err := h.ninjaVanService.GetPUDOPoints(c.Request.Context())
 	if err != nil {
 		h.logger.Error("Failed to get PUDO points", zap.Error(err))
-		utils.ErrorResponse(c, err)
+		utils.SendErrorResponse(c, err)
 		return
 	}
 
-	utils.SuccessResponse(c, gin.H{
+	utils.SendSuccessResponse(c, http.StatusOK, gin.H{
 		"success": true,
 		"data":    pudoPoints,
 	})
@@ -128,7 +129,7 @@ func (h *NinjaVanHandler) ProcessWebhook(c *gin.Context) {
 	// Get webhook signature from header
 	signature := c.GetHeader("X-Ninjavan-Hmac-Sha256")
 	if signature == "" {
-		utils.ErrorResponse(c, errors.ErrInvalidRequest)
+		utils.SendErrorResponse(c, errors.NewValidationError("INVALID_REQUEST", "Invalid request"))
 		return
 	}
 
@@ -136,7 +137,7 @@ func (h *NinjaVanHandler) ProcessWebhook(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		h.logger.Error("Failed to read webhook body", zap.Error(err))
-		utils.ErrorResponse(c, errors.ErrInvalidRequest)
+		utils.SendErrorResponse(c, errors.NewValidationError("INVALID_REQUEST", "Invalid request"))
 		return
 	}
 
@@ -144,11 +145,11 @@ func (h *NinjaVanHandler) ProcessWebhook(c *gin.Context) {
 	err = h.ninjaVanService.ProcessWebhook(c.Request.Context(), body, signature)
 	if err != nil {
 		h.logger.Error("Failed to process webhook", zap.Error(err))
-		utils.ErrorResponse(c, err)
+		utils.SendErrorResponse(c, err)
 		return
 	}
 
-	utils.SuccessResponse(c, gin.H{
+	utils.SendSuccessResponse(c, http.StatusOK, gin.H{
 		"success": true,
 		"message": "Webhook processed successfully",
 	})

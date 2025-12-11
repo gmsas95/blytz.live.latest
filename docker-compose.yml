@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -32,15 +32,18 @@ services:
 
   # Backend Services
   auth-service:
-    build: ./services/auth-service
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
     ports:
       - "8084:8084"
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/auth_db
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
       - JWT_SECRET=your-secret-key
       - BETTER_AUTH_SECRET=your-better-auth-secret
       - ENVIRONMENT=production
       - LOG_LEVEL=info
+      - PORT=8084
     depends_on:
       postgres:
         condition: service_healthy
@@ -49,15 +52,19 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    restart: unless-stopped
 
   product-service:
-    build: ./services/product-service
+    build:
+      context: ./services/product-service
+      dockerfile: Dockerfile
     ports:
       - "8082:8082"
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/products_db
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
       - ENVIRONMENT=production
       - LOG_LEVEL=info
+      - PORT=8082
     depends_on:
       postgres:
         condition: service_healthy
@@ -66,16 +73,20 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    restart: unless-stopped
 
   auction-service:
-    build: ./services/auction-service
+    build:
+      context: ./services/auction-service
+      dockerfile: Dockerfile
     ports:
       - "8083:8083"
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/auction_db
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
       - REDIS_URL=redis://redis:6379
       - ENVIRONMENT=production
       - LOG_LEVEL=info
+      - PORT=8083
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,15 +97,19 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    restart: unless-stopped
 
   order-service:
-    build: ./services/order-service
+    build:
+      context: ./services/order-service
+      dockerfile: Dockerfile
     ports:
       - "8085:8085"
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/orders_db
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
       - ENVIRONMENT=production
       - LOG_LEVEL=info
+      - PORT=8085
     depends_on:
       postgres:
         condition: service_healthy
@@ -103,15 +118,24 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    restart: unless-stopped
 
   payment-service:
-    build: ./services/payment-service
+    build:
+      context: ./services/payment-service
+      dockerfile: Dockerfile
     ports:
       - "8086:8086"
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/payments_db
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
       - ENVIRONMENT=production
       - LOG_LEVEL=info
+      - PORT=8086
+      - STRIPE_SECRET_KEY=sk_test_example
+      - STRIPE_WEBHOOK_SECRET=whsec_example
+      - FIUU_MERCHANT_ID=example_merchant
+      - FIUU_VERIFY_KEY=example_verify_key
+      - FIUU_SANDBOX=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -120,15 +144,19 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    restart: unless-stopped
 
   chat-service:
-    build: ./services/chat-service
+    build:
+      context: ./services/chat-service
+      dockerfile: Dockerfile
     ports:
       - "8088:8088"
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/chat_db
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
       - ENVIRONMENT=production
       - LOG_LEVEL=info
+      - PORT=8088
     depends_on:
       postgres:
         condition: service_healthy
@@ -137,15 +165,21 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    restart: unless-stopped
 
   logistics-service:
-    build: ./services/logistics-service
+    build:
+      context: ./services/logistics-service
+      dockerfile: Dockerfile
     ports:
       - "8087:8087"
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/logistics_db
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
       - ENVIRONMENT=production
       - LOG_LEVEL=info
+      - PORT=8087
+      - NINJAVAN_API_KEY=example_api_key
+      - NINJAVAN_API_SECRET=example_api_secret
     depends_on:
       postgres:
         condition: service_healthy
@@ -154,54 +188,70 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    restart: unless-stopped
 
   # API Gateway
-
-  # LiveKit Service
-  livekit-service:
-    build: ./services/livekit-service
-    ports:
-      - "8089:8089"
-    environment:
-      - LIVEKIT_API_KEY=devkey
-      - LIVEKIT_API_SECRET=devsecret
-      - LIVEKIT_URL=https://blytz-live-u5u72ozx.livekit.cloud
-      - AUTH_SERVICE_URL=http://auth-service:8084
-      - PORT=8089
-      - ENVIRONMENT=production
-      - LOG_LEVEL=info
-    depends_on:
-      - auth-service
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8089/api/v1/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
   gateway:
-    build: ./services/gateway
+    build:
+      context: ./services/gateway
+      dockerfile: Dockerfile
     ports:
       - "8080:8080"
     environment:
       - ENVIRONMENT=production
       - LOG_LEVEL=info
+      - PORT=8080
     depends_on:
-      - auth-service
-      - product-service
-      - auction-service
-      - order-service
-      - payment-service
-      - chat-service
-      - logistics-service
-      - livekit-service
+      auth-service:
+        condition: service_healthy
+      product-service:
+        condition: service_healthy
+      auction-service:
+        condition: service_healthy
+      order-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+      chat-service:
+        condition: service_healthy
+      logistics-service:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+    restart: unless-stopped
+
+  # LiveKit Service
+  livekit-service:
+    build:
+      context: ./services/livekit-service
+      dockerfile: Dockerfile
+    ports:
+      - "8089:8089"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
+      - LIVEKIT_API_KEY=devkey
+      - LIVEKIT_API_SECRET=devsecret
+      - LIVEKIT_URL=https://blytz-live-u5u72ozx.livekit.cloud
+      - AUTH_SERVICE_URL=http://auth-service:8084
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+      - PORT=8089
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8089/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
 
   # Frontend
-
-    - livekit-service
   frontend:
     build: ./frontend
     ports:
@@ -209,8 +259,14 @@ services:
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8080
     depends_on:
-      - gateway
+      gateway:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
+
+networks:
+  default:
+    name: blytz-network

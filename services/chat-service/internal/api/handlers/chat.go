@@ -9,6 +9,8 @@ import (
 
 	"github.com/gmsas95/blytz-mvp/services/chat-service/internal/models"
 	"github.com/gmsas95/blytz-mvp/services/chat-service/internal/services"
+	sharedErrors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
+	sharedUtils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
 )
 
 // ChatHandler handles chat operations
@@ -30,24 +32,24 @@ func NewChatHandler(chatService *services.ChatService, logger *zap.Logger) *Chat
 func (h *ChatHandler) CreateRoom(c *gin.Context) {
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "💬 Chat Service: User not authenticated"})
+		sharedUtils.SendErrorResponse(c, sharedErrors.NewAuthenticationError("UNAUTHORIZED", "User not authenticated"))
 		return
 	}
 
 	var req models.CreateRoomRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.logger.Error("💬 Chat Service: Create room validation failed", zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		sharedUtils.SendValidationErrorResponse(c, map[string]string{"validation": err.Error()})
 		return
 	}
 
 	room, err := h.chatService.CreateRoom(c.Request.Context(), userID, &req)
 	if err != nil {
-		h.logger.Error("💬 Chat Service: Failed to create room", 
+		h.logger.Error("💬 Chat Service: Failed to create room",
 			zap.String("user_id", userID),
 			zap.String("name", req.Name),
 			zap.Error(err))
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "💬 Failed to create room"})
+		sharedUtils.SendErrorResponse(c, sharedErrors.NewInternalError("CREATE_ROOM_FAILED", "Failed to create room"))
 		return
 	}
 
@@ -60,37 +62,34 @@ func (h *ChatHandler) CreateRoom(c *gin.Context) {
 		IsActive:     true,
 	}
 
-	h.logger.Info("💬 Chat Service: Room created successfully", 
+	h.logger.Info("💬 Chat Service: Room created successfully",
 		zap.String("room_id", room.ID),
 		zap.String("user_id", userID))
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "💬 Chat Service: Room created successfully!",
-		"room": response,
-	})
+	sharedUtils.SendSuccessResponseWithMessage(c, http.StatusCreated, "💬 Chat Service: Room created successfully!", response)
 }
 
 // GetRoom retrieves room by ID
 func (h *ChatHandler) GetRoom(c *gin.Context) {
 	roomID := c.Param("room_id")
 	if roomID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "💬 Chat Service: Room ID is required"})
+		sharedUtils.SendErrorResponse(c, sharedErrors.NewValidationError("MISSING_ROOM_ID", "Room ID is required"))
 		return
 	}
 
 	userID := c.GetString("userID")
 	if userID == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "💬 Chat Service: User not authenticated"})
+		sharedUtils.SendErrorResponse(c, sharedErrors.NewAuthenticationError("UNAUTHORIZED", "User not authenticated"))
 		return
 	}
 
 	room, err := h.chatService.GetRoom(c.Request.Context(), roomID, userID)
 	if err != nil {
-		h.logger.Error("💬 Chat Service: Failed to get room", 
+		h.logger.Error("💬 Chat Service: Failed to get room",
 			zap.String("room_id", roomID),
 			zap.String("user_id", userID),
 			zap.Error(err))
-		c.JSON(http.StatusNotFound, gin.H{"error": "💬 Room not found"})
+		sharedUtils.SendErrorResponse(c, sharedErrors.NewNotFoundError("ROOM_NOT_FOUND", "Room not found"))
 		return
 	}
 
@@ -103,10 +102,7 @@ func (h *ChatHandler) GetRoom(c *gin.Context) {
 		IsActive:      true,
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "💬 Chat Service: Room retrieved successfully!",
-		"room": response,
-	})
+	sharedUtils.SendSuccessResponseWithMessage(c, http.StatusOK, "💬 Chat Service: Room retrieved successfully!", response)
 }
 
 // UpdateRoom updates existing room
@@ -603,19 +599,20 @@ func (h *ChatHandler) GetTypingIndicators(c *gin.Context) {
 
 // Health returns health status for chat service
 func (h *ChatHandler) Health(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"status":    "ok",
-		"service":   "chat-service",
-		"timestamp": "2025-12-06",
-		"version":   "v1.0.0",
-		"message":   "💬 QUICK WIN: Chat Service 100% Working!",
-		"checks": gin.H{
-			"database":      "connected",
-			"redis":         "connected",
-			"messaging":     "operational",
-			"rooms":         "operational",
-			"websockets":    "operational",
-			"typing_status": "operational",
-		},
-	})
+	healthStatus := sharedUtils.NewHealthStatus("ok")
+	healthStatus.AddService("database", "connected", "Database connection established")
+	healthStatus.AddService("redis", "connected", "Redis connection established")
+	healthStatus.AddService("messaging", "operational", "Real-time messaging system operational")
+	healthStatus.AddService("rooms", "operational", "Chat room management operational")
+	healthStatus.AddService("websockets", "operational", "WebSocket connections operational")
+	healthStatus.AddService("typing_status", "operational", "Typing indicators operational")
+
+	response := gin.H{
+		"service": "chat-service",
+		"version": "v1.0.0",
+		"message": "💬 QUICK WIN: Chat Service 100% Working!",
+		"checks":  healthStatus.Checks,
+	}
+
+	sharedUtils.SendSuccessResponse(c, http.StatusOK, response)
 }

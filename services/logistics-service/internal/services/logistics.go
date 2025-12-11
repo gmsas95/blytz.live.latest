@@ -27,6 +27,11 @@ func NewLogisticsService(db *gorm.DB, logger *zap.Logger, config *config.Config)
 	}
 }
 
+// GetDB returns the database instance for handlers that need direct DB access
+func (s *LogisticsService) GetDB() *gorm.DB {
+	return s.db
+}
+
 func (s *LogisticsService) CreateShipment(ctx context.Context, userID string, req *CreateShipmentRequest) (*models.Shipment, error) {
 	s.logger.Info("Creating shipment", zap.String("user_id", userID), zap.String("order_id", req.OrderID))
 
@@ -76,7 +81,7 @@ func (s *LogisticsService) CreateShipment(ctx context.Context, userID string, re
 
 	if err := s.db.Create(shipment).Error; err != nil {
 		s.logger.Error("Failed to create shipment", zap.Error(err))
-		return nil, errors.ErrInternalServer
+		return nil, errors.NewInternalError("SHIPMENT_CREATE_FAILED", "Failed to create shipment")
 	}
 
 	s.logger.Info("Shipment created successfully", zap.String("shipment_id", shipment.ID))
@@ -89,10 +94,10 @@ func (s *LogisticsService) GetShipment(ctx context.Context, shipmentID string, u
 	var shipment models.Shipment
 	if err := s.db.Where("id = ? AND user_id = ?", shipmentID, userID).First(&shipment).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.ErrNotFound
+			return nil, errors.NewNotFoundError("SHIPMENT_NOT_FOUND", "Shipment not found")
 		}
 		s.logger.Error("Failed to get shipment", zap.Error(err))
-		return nil, errors.ErrInternalServer
+		return nil, errors.NewInternalError("SHIPMENT_GET_FAILED", "Failed to get shipment")
 	}
 
 	return &shipment, nil
@@ -104,10 +109,10 @@ func (s *LogisticsService) GetShipmentByOrder(ctx context.Context, orderID strin
 	var shipment models.Shipment
 	if err := s.db.Where("order_id = ? AND user_id = ?", orderID, userID).First(&shipment).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.ErrNotFound
+			return nil, errors.NewNotFoundError("SHIPMENT_NOT_FOUND", "Shipment not found")
 		}
 		s.logger.Error("Failed to get shipment by order", zap.Error(err))
-		return nil, errors.ErrInternalServer
+		return nil, errors.NewInternalError("SHIPMENT_GET_BY_ORDER_FAILED", "Failed to get shipment by order")
 	}
 
 	return &shipment, nil
@@ -119,10 +124,10 @@ func (s *LogisticsService) UpdateShipmentStatus(ctx context.Context, shipmentID 
 	var shipment models.Shipment
 	if err := s.db.Where("id = ? AND user_id = ?", shipmentID, userID).First(&shipment).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, errors.ErrNotFound
+			return nil, errors.NewNotFoundError("SHIPMENT_NOT_FOUND", "Shipment not found")
 		}
 		s.logger.Error("Failed to get shipment for status update", zap.Error(err))
-		return nil, errors.ErrInternalServer
+		return nil, errors.NewInternalError("SHIPMENT_STATUS_UPDATE_FAILED", "Failed to get shipment for status update")
 	}
 
 	shipment.Status = string(status)
@@ -136,7 +141,7 @@ func (s *LogisticsService) UpdateShipmentStatus(ctx context.Context, shipmentID 
 
 	if err := s.db.Save(&shipment).Error; err != nil {
 		s.logger.Error("Failed to update shipment status", zap.Error(err))
-		return nil, errors.ErrInternalServer
+		return nil, errors.NewInternalError("SHIPMENT_STATUS_UPDATE_FAILED", "Failed to update shipment status")
 	}
 
 	s.logger.Info("Shipment status updated successfully", zap.String("shipment_id", shipment.ID))
@@ -149,17 +154,17 @@ func (s *LogisticsService) TrackShipment(ctx context.Context, trackingNumber str
 	var shipment models.Shipment
 	if err := s.db.Where("tracking_number = ?", trackingNumber).First(&shipment).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			return nil, nil, errors.ErrNotFound
+			return nil, nil, errors.NewNotFoundError("SHIPMENT_NOT_FOUND", "Shipment not found")
 		}
 		s.logger.Error("Failed to get shipment for tracking", zap.Error(err))
-		return nil, nil, errors.ErrInternalServer
+		return nil, nil, errors.NewInternalError("SHIPMENT_TRACKING_FAILED", "Failed to get shipment for tracking")
 	}
 
 	// Get tracking events
 	var events []*models.TrackingEvent
 	if err := s.db.Where("shipment_id = ?", shipment.ID).Order("timestamp DESC").Find(&events).Error; err != nil {
 		s.logger.Error("Failed to get tracking events", zap.Error(err))
-		return nil, nil, errors.ErrInternalServer
+		return nil, nil, errors.NewInternalError("TRACKING_EVENTS_FAILED", "Failed to get tracking events")
 	}
 
 	return &shipment, events, nil

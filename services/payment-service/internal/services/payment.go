@@ -29,6 +29,11 @@ type PaymentService struct {
 	isSandbox        bool
 }
 
+// GetDB returns the database instance
+func (s *PaymentService) GetDB() *gorm.DB {
+	return s.db
+}
+
 func NewPaymentService(db *gorm.DB, logger *zap.Logger, fiuuAPI, fiuuMerchantID, fiuuClientID, fiuuClientSecret, fiuuSecretKey string, isSandbox bool) *PaymentService {
 	return &PaymentService{
 		db:                db,

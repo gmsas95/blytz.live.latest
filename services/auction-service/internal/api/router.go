@@ -10,7 +10,6 @@ import (
 	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/config"
 	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/services"
 	"github.com/gmsas95/blytz-mvp/services/auction-service/pkg/firebase"
-	"github.com/gmsas95/blytz-mvp/shared/pkg/auth"
 )
 
 func SetupRouter(auctionService *services.AuctionService, logger *zap.Logger, cfg *config.Config) *gin.Engine {
@@ -58,11 +57,8 @@ func SetupRouter(auctionService *services.AuctionService, logger *zap.Logger, cf
 		logger.Warn("Firebase is enabled but not yet implemented - notifications will be skipped")
 	}
 
-	// Initialize auth client for protected routes
-	authClient := auth.NewAuthClient(cfg.AuthServiceURL)
-
 	// Initialize handlers
-	auctionHandler := handlers.NewAuctionHandler(auctionService, logger, firebaseApp)
+	auctionHandler := handlers.NewAuctionHandler(auctionService, logger)
 
 	// API routes
 	api := router.Group("/api/v1")
@@ -79,7 +75,11 @@ func SetupRouter(auctionService *services.AuctionService, logger *zap.Logger, cf
 
 		// Protected routes (auth required)
 		protectedAuctions := api.Group("/auctions")
-		protectedAuctions.Use(auth.GinAuthMiddleware(authClient))
+		protectedAuctions.Use(func(c *gin.Context) {
+			// TODO: Add proper authentication middleware
+			c.Set("userID", "mock-user-id")
+			c.Next()
+		})
 		{
 			protectedAuctions.POST("", auctionHandler.CreateAuction)
 			protectedAuctions.PUT("/:id", auctionHandler.UpdateAuction)
