@@ -20,7 +20,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	firebase "github.com/gmsas95/blytz-mvp/services/auction-service/pkg/firebase"
+	firebase "github.com/gmsas95/blytz.live.latest/services/auction-service/pkg/firebase"
 )
 
 func TestAuctionFlow(t *testing.T) {

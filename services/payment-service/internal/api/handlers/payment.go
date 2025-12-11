@@ -2,13 +2,12 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/gmsas95/blytz-mvp/services/payment-service/internal/models"
-	"github.com/gmsas95/blytz-mvp/services/payment-service/internal/services"
+	"github.com/gmsas95/blytz.live.latest/services/payment-service/internal/models"
+	"github.com/gmsas95/blytz.live.latest/services/payment-service/internal/services"
 )
 
 // PaymentHandler handles payment operations

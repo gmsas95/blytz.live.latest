@@ -6,10 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/api/handlers"
-	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/config"
-	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/services"
-	"github.com/gmsas95/blytz-mvp/services/auction-service/pkg/firebase"
+	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/api/handlers"
+	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/config"
+	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/services"
+	"github.com/gmsas95/blytz.live.latest/services/auction-service/pkg/firebase"
 )
 
 func SetupRouter(auctionService *services.AuctionService, logger *zap.Logger, cfg *config.Config) *gin.Engine {

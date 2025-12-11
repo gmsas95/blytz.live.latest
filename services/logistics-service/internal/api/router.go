@@ -5,11 +5,11 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gmsas95/blytz-mvp/services/logistics-service/internal/api/handlers"
-	"github.com/gmsas95/blytz-mvp/services/logistics-service/internal/config"
-	"github.com/gmsas95/blytz-mvp/services/logistics-service/internal/services"
-	"github.com/gmsas95/blytz-mvp/shared/pkg/auth"
-	"github.com/gmsas95/blytz-mvp/shared/pkg/utils"
+	"github.com/gmsas95/blytz.live.latest/services/logistics-service/internal/api/handlers"
+	"github.com/gmsas95/blytz.live.latest/services/logistics-service/internal/config"
+	"github.com/gmsas95/blytz.live.latest/services/logistics-service/internal/services"
+	"github.com/gmsas95/blytz.live.latest/shared/pkg/auth"
+	"github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
 	"go.uber.org/zap"
 )
 
