@@ -18,8 +18,6 @@ require (
 
 replace github.com/gmsas95/blytz-mvp/shared => ../../shared
 
-replace github.com/chenzhuoyu/base64x => github.com/cloudwego/base64x v0.1.4
-
 require (
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
