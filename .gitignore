@@ -453,3 +453,4 @@ migrations/temp/
 data/raw/
 data/processed/
 models/
+!services/*/internal/models/

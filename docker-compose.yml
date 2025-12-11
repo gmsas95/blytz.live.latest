@@ -22,11 +22,18 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --maxclients 10000
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
 
   # Backend Services
   auth-service:
@@ -36,21 +43,38 @@ services:
     ports:
       - "8085:8085"
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db?sslmode=disable&max_conns=50&max_idle_conns=25
+      - REDIS_URL=redis://redis:6379
       - JWT_SECRET=your-secret-key
       - BETTER_AUTH_SECRET=your-better-auth-secret
       - ENVIRONMENT=production
       - LOG_LEVEL=info
       - PORT=8085
+      - DB_MAX_OPEN_CONNS=50
+      - DB_MAX_IDLE_CONNS=25
+      - DB_CONN_MAX_LIFETIME=300s
+      - DB_CONN_MAX_IDLE_TIME=60s
+      - REDIS_POOL_SIZE=50
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8085/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
 
   product-service:
     build:
@@ -80,11 +104,16 @@ services:
     ports:
       - "8087:8087"
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db?sslmode=disable&max_conns=50&max_idle_conns=25
       - REDIS_URL=redis://redis:6379
       - ENVIRONMENT=production
       - LOG_LEVEL=info
       - PORT=8087
+      - DB_MAX_OPEN_CONNS=50
+      - DB_MAX_IDLE_CONNS=25
+      - DB_CONN_MAX_LIFETIME=300s
+      - DB_CONN_MAX_IDLE_TIME=60s
+      - REDIS_POOL_SIZE=50
     depends_on:
       postgres:
         condition: service_healthy
@@ -95,7 +124,16 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+          cpus: '0.75'
+        reservations:
+          memory: 192M
+          cpus: '0.375'
 
   order-service:
     build:
@@ -151,19 +189,38 @@ services:
     ports:
       - "8090:8090"
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db?sslmode=disable&max_conns=50&max_idle_conns=25
+      - REDIS_URL=redis://redis:6379
       - ENVIRONMENT=production
       - LOG_LEVEL=info
       - PORT=8090
+      - DB_MAX_OPEN_CONNS=50
+      - DB_MAX_IDLE_CONNS=25
+      - DB_CONN_MAX_LIFETIME=300s
+      - DB_CONN_MAX_IDLE_TIME=60s
+      - REDIS_POOL_SIZE=50
+      - WS_READ_BUFFER_SIZE=4096
+      - WS_WRITE_BUFFER_SIZE=4096
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.5'
 
   logistics-service:
     build:
@@ -196,11 +253,16 @@ services:
     ports:
       - "8095:8095"
     environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db?sslmode=disable&max_conns=50&max_idle_conns=25
       - REDIS_URL=redis://redis:6379
       - ENVIRONMENT=production
       - LOG_LEVEL=info
       - PORT=8095
+      - DB_MAX_OPEN_CONNS=50
+      - DB_MAX_IDLE_CONNS=25
+      - DB_CONN_MAX_LIFETIME=300s
+      - DB_CONN_MAX_IDLE_TIME=60s
+      - REDIS_POOL_SIZE=50
     depends_on:
       postgres:
         condition: service_healthy
@@ -211,7 +273,16 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+          cpus: '0.75'
+        reservations:
+          memory: 192M
+          cpus: '0.375'
 
   # Notification Service
   notification-service:
@@ -221,18 +292,36 @@ services:
     ports:
       - "8094:8094"
     environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db?sslmode=disable&max_conns=50&max_idle_conns=25
+      - REDIS_URL=redis://redis:6379
       - ENVIRONMENT=production
       - LOG_LEVEL=info
       - PORT=8094
+      - DB_MAX_OPEN_CONNS=50
+      - DB_MAX_IDLE_CONNS=25
+      - DB_CONN_MAX_LIFETIME=300s
+      - DB_CONN_MAX_IDLE_TIME=60s
+      - REDIS_POOL_SIZE=50
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8094/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+          cpus: '0.75'
+        reservations:
+          memory: 192M
+          cpus: '0.375'
 
   # API Gateway
   gateway:

@@ -9,7 +9,7 @@ use (
 	./services/logistics-service
 	./services/notification-service
 	./services/order-service
-	./services/payment-service
 	./services/product-service
+	./services/stripe-service
 	./shared
 )
