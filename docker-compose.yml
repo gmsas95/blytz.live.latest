@@ -188,6 +188,31 @@ services:
       retries: 3
     restart: unless-stopped
 
+  # Search Service
+  search-service:
+    build:
+      context: ./services/search-service
+      dockerfile: Dockerfile
+    ports:
+      - "8095:8095"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
+      - REDIS_URL=redis://redis:6379
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+      - PORT=8095
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8095/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
   # Notification Service
   notification-service:
     build:
@@ -234,6 +259,8 @@ services:
       chat-service:
         condition: service_healthy
       logistics-service:
+        condition: service_healthy
+      search-service:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8092/health"]
