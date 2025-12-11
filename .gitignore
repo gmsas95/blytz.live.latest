@@ -289,6 +289,28 @@ blytz_flutter_app/.packages
 blytz_flutter_app/.pub-cache/
 blytz_flutter_app/.pub/
 blytz_flutter_app/pubspec.lock
+
+# React Native build artifacts
+frontend-mobile-rn/android/app/build/
+frontend-mobile-rn/ios/build/
+frontend-mobile-rn/.expo/
+frontend-mobile-rn/.expo-shared/
+frontend-mobile-rn/node_modules/
+frontend-mobile-rn/.gradle/
+frontend-mobile-rn/android/gradlew
+frontend-mobile-rn/android/gradlew.bat
+frontend-mobile-rn/android/local.properties
+frontend-mobile-rn/ios/Pods/
+frontend-mobile-rn/ios/*.xcodeproj/project.xcworkspace/xcuserdata
+frontend-mobile-rn/ios/*.xcodeproj/xcuserdata
+frontend-mobile-rn/index.jsbundle
+frontend-mobile-rn/index.android.bundle
+frontend-mobile-rn/index.ios.bundle
+frontend-mobile-rn/metro-health-check*
+frontend-mobile-rn/.babel-cache/
+frontend-mobile-rn/.vscode/settings.json
+
+# IDE files
 *.iml
 *.ipr
 *.iws
@@ -403,3 +425,31 @@ cache/
 !TECHNICAL_DEBT.md
 !PHASE1_FIXES_SUMMARY.md
 !TEST_RESULTS_PHASE1.md
+
+# Terraform state files (keep examples, ignore actual state)
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+!terraform.tfstate.example
+
+# Kubernetes secrets and configs
+*.kubeconfig
+k8s-secrets/
+secrets.yaml
+secrets.yml
+
+# Database migrations (keep schema files, ignore temporary migration files)
+*.sql.tmp
+migrations/tmp/
+migrations/temp/
+
+# AI/ML model files and data
+*.model
+*.pkl
+*.joblib
+*.h5
+*.pb
+data/raw/
+data/processed/
+models/

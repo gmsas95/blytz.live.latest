@@ -14,6 +14,7 @@ import (
 	"go.uber.org/zap"
 
 	shared_utils "github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
+	shared_metrics "github.com/gmsas95/blytz.live.latest/shared/pkg/metrics"
 	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/api/handlers"
 	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/middleware"
 	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/services"
@@ -68,6 +69,12 @@ func main() {
 
 	// CORS middleware using shared package
 	router.Use(shared_utils.CORSMiddleware())
+	
+	// Metrics middleware
+	router.Use(shared_metrics.MetricsMiddleware("auth-service"))
+	
+	// Metrics endpoint
+	router.GET("/metrics", shared_metrics.PrometheusHandler())
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
@@ -120,6 +127,10 @@ func main() {
 		port = "8085"  // Updated to use consistent port 8085 as per docker-compose.yml
 	}
 
+	// Set build info and start time
+	shared_metrics.SetBuildInfo("v2.0-database", "unknown", time.Now().Format(time.RFC3339))
+	shared_metrics.SetStartTime(float64(time.Now().Unix()))
+
 	logger.Info("Auth Service starting",
 		zap.String("port", port),
 		zap.String("database", "PostgreSQL"),
@@ -128,6 +139,7 @@ func main() {
 
 	fmt.Printf("🚀 Auth Service starting on port %s\n", port)
 	fmt.Printf("📊 Health check: http://localhost:%s/health\n", port)
+	fmt.Printf("📈 Metrics: http://localhost:%s/metrics\n", port)
 	fmt.Printf("🔐 Login endpoint: http://localhost:%s/api/v1/auth/login\n", port)
 	fmt.Printf("📝 Register endpoint: http://localhost:%s/api/v1/auth/register\n", port)
 	fmt.Printf("🗄️  Database: PostgreSQL\n")

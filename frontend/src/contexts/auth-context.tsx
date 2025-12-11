@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
-import { api } from '@/lib/api-adapter';
+import { authService } from '@/lib/api';
 import { User } from '@/types';
 
 interface AuthContextType {
@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Validate token with backend
-      const response = await api.getCurrentUser();
+      const response = await authService.getCurrentUser();
       if (response.success && response.data) {
         setUser(response.data);
       } else {
@@ -65,16 +65,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ): Promise<{ success: boolean; error?: string }> => {
     try {
       setIsLoading(true);
-      const response = await api.login(email, password);
+      const response = await authService.login(email, password);
 
       if (response.success && response.data) {
-        // Store JWT token (assuming it's returned in the response or headers)
-        const token = (response.data as any).token || extractTokenFromResponse(response);
-        if (token) {
-          setStoredToken(token);
+        // Store JWT token (backend returns { token: string, user: User })
+        const authData = response.data as { token: string; user: User };
+        if (authData.token) {
+          setStoredToken(authData.token);
         }
 
-        setUser(response.data);
+        setUser(authData.user);
         return { success: true };
       } else {
         return { success: false, error: response.error || 'Login failed' };
@@ -92,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ): Promise<{ success: boolean; error?: string }> => {
     try {
       setIsLoading(true);
-      const response = await api.register(userData);
+      const response = await authService.register(userData);
 
       if (response.success && response.data) {
         // Auto-login after successful registration
@@ -111,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await api.logout();
+      await authService.logout();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -122,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = async () => {
     try {
-      const response = await api.getCurrentUser();
+      const response = await authService.getCurrentUser();
       if (response.success && response.data) {
         setUser(response.data);
       } else {
