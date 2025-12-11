@@ -28,31 +28,31 @@ func NewSeeder(db *gorm.DB, logger *zap.Logger) *Seeder {
 // SeedAll seeds all test data
 func (s *Seeder) SeedAll() error {
 	s.logger.Info("Starting database seeding")
-	
+
 	if err := s.SeedConnectedAccounts(); err != nil {
 		return fmt.Errorf("failed to seed connected accounts: %w", err)
 	}
-	
+
 	if err := s.SeedPaymentIntents(); err != nil {
 		return fmt.Errorf("failed to seed payment intents: %w", err)
 	}
-	
+
 	if err := s.SeedTransfers(); err != nil {
 		return fmt.Errorf("failed to seed transfers: %w", err)
 	}
-	
+
 	if err := s.SeedPayouts(); err != nil {
 		return fmt.Errorf("failed to seed payouts: %w", err)
 	}
-	
+
 	if err := s.SeedApplicationFees(); err != nil {
 		return fmt.Errorf("failed to seed application fees: %w", err)
 	}
-	
+
 	if err := s.SeedStripeEvents(); err != nil {
 		return fmt.Errorf("failed to seed stripe events: %w", err)
 	}
-	
+
 	s.logger.Info("Database seeding completed successfully")
 	return nil
 }
@@ -61,40 +61,40 @@ func (s *Seeder) SeedAll() error {
 func (s *Seeder) SeedConnectedAccounts() error {
 	accounts := []models.ConnectedAccount{
 		{
-			ID:                uuid.New().String(),
-			UserID:            uuid.New().String(),
-			StripeAccountID:   "acct_test123456789",
-			AccountType:       "express",
-			Country:           "US",
-			Currency:          "USD",
+			ID:                 uuid.New().String(),
+			UserID:             uuid.New().String(),
+			StripeAccountID:    "acct_test123456789",
+			AccountType:        "express",
+			Country:            "US",
+			Currency:           "USD",
 			VerificationStatus: "verified",
-			ChargesEnabled:    true,
-			PayoutsEnabled:    true,
-			Metadata:          s.buildMetadata(map[string]string{"business_type": "individual", "platform": "blytz"}),
+			ChargesEnabled:     true,
+			PayoutsEnabled:     true,
+			Metadata:           s.buildMetadata(map[string]string{"business_type": "individual", "platform": "blytz"}),
 		},
 		{
-			ID:                uuid.New().String(),
-			UserID:            uuid.New().String(),
-			StripeAccountID:   "acct_test987654321",
-			AccountType:       "custom",
-			Country:           "US",
-			Currency:          "USD",
+			ID:                 uuid.New().String(),
+			UserID:             uuid.New().String(),
+			StripeAccountID:    "acct_test987654321",
+			AccountType:        "custom",
+			Country:            "US",
+			Currency:           "USD",
 			VerificationStatus: "pending",
-			ChargesEnabled:    false,
-			PayoutsEnabled:    false,
-			Metadata:          s.buildMetadata(map[string]string{"business_type": "business", "platform": "blytz"}),
+			ChargesEnabled:     false,
+			PayoutsEnabled:     false,
+			Metadata:           s.buildMetadata(map[string]string{"business_type": "business", "platform": "blytz"}),
 		},
 		{
-			ID:                uuid.New().String(),
-			UserID:            uuid.New().String(),
-			StripeAccountID:   "acct_test111111111",
-			AccountType:       "express",
-			Country:           "GB",
-			Currency:          "GBP",
+			ID:                 uuid.New().String(),
+			UserID:             uuid.New().String(),
+			StripeAccountID:    "acct_test111111111",
+			AccountType:        "express",
+			Country:            "GB",
+			Currency:           "GBP",
 			VerificationStatus: "verified",
-			ChargesEnabled:    true,
-			PayoutsEnabled:    true,
-			Metadata:          s.buildMetadata(map[string]string{"business_type": "individual", "platform": "blytz", "region": "EU"}),
+			ChargesEnabled:     true,
+			PayoutsEnabled:     true,
+			Metadata:           s.buildMetadata(map[string]string{"business_type": "individual", "platform": "blytz", "region": "EU"}),
 		},
 	}
 
@@ -158,7 +158,7 @@ func (s *Seeder) SeedPaymentIntents() error {
 			UserID:                uuid.New().String(),
 			AuctionID:             stringPtr(uuid.New().String()),
 			ConnectedAccountID:    stringPtr(accounts[2].ID), // UK account
-			ApplicationFeeAmount:  250, // £2.50 fee
+			ApplicationFeeAmount:  250,                       // £2.50 fee
 			Metadata:              s.buildMetadata(map[string]string{"auction_id": "auc_222", "buyer_id": "user_333"}),
 		},
 	}
@@ -214,7 +214,7 @@ func (s *Seeder) SeedTransfers() error {
 			ID:                   uuid.New().String(),
 			StripeTransferID:     "tr_test111111111",
 			ConnectedAccountID:   accounts[2].ID, // UK account
-			Amount:               4750, // £47.50 in cents (after fees)
+			Amount:               4750,           // £47.50 in cents (after fees)
 			Currency:             "GBP",
 			Status:               "pending",
 			DestinationPaymentID: "py_test111111111",
@@ -256,7 +256,7 @@ func (s *Seeder) SeedPayouts() error {
 			Amount:             9500, // $95.00 in cents
 			Currency:           "USD",
 			Status:             "paid",
-			ArrivalDate:        time.Now().AddDate(0, 0, -2), // 2 days ago
+			ArrivalDate:        timePtr(time.Now().AddDate(0, 0, -2)), // 2 days ago
 			Metadata:           s.buildMetadata(map[string]string{"batch_id": "batch_123", "type": "weekly_payout"}),
 		},
 		{
@@ -266,17 +266,17 @@ func (s *Seeder) SeedPayouts() error {
 			Amount:             23750, // $237.50 in cents
 			Currency:           "USD",
 			Status:             "in_transit",
-			ArrivalDate:        time.Now().AddDate(0, 0, 2), // 2 days from now
+			ArrivalDate:        timePtr(time.Now().AddDate(0, 0, 2)), // 2 days from now
 			Metadata:           s.buildMetadata(map[string]string{"batch_id": "batch_456", "type": "weekly_payout"}),
 		},
 		{
 			ID:                 uuid.New().String(),
 			StripePayoutID:     "po_test111111111",
 			ConnectedAccountID: accounts[2].ID, // UK account
-			Amount:             4750, // £47.50 in cents
+			Amount:             4750,           // £47.50 in cents
 			Currency:           "GBP",
 			Status:             "pending",
-			ArrivalDate:        time.Now().AddDate(0, 0, 5), // 5 days from now
+			ArrivalDate:        timePtr(time.Now().AddDate(0, 0, 5)), // 5 days from now
 			Metadata:           s.buildMetadata(map[string]string{"batch_id": "batch_789", "type": "weekly_payout"}),
 		},
 	}
@@ -349,32 +349,32 @@ func (s *Seeder) SeedApplicationFees() error {
 func (s *Seeder) SeedStripeEvents() error {
 	events := []models.StripeEvent{
 		{
-			ID:          uuid.New().String(),
+			ID:            uuid.New().String(),
 			StripeEventID: "evt_test123456789",
-			EventType:   "payment_intent.succeeded",
-			Processed:   true,
-			EventData:   s.buildEventData(map[string]interface{}{"payment_intent": "pi_test123456789", "amount": 10000}),
+			EventType:     "payment_intent.succeeded",
+			Processed:     true,
+			EventData:     s.buildEventData(map[string]interface{}{"payment_intent": "pi_test123456789", "amount": 10000}),
 		},
 		{
-			ID:          uuid.New().String(),
+			ID:            uuid.New().String(),
 			StripeEventID: "evt_test987654321",
-			EventType:   "transfer.created",
-			Processed:   false,
-			EventData:   s.buildEventData(map[string]interface{}{"transfer": "tr_test987654321", "amount": 23750}),
+			EventType:     "transfer.created",
+			Processed:     false,
+			EventData:     s.buildEventData(map[string]interface{}{"transfer": "tr_test987654321", "amount": 23750}),
 		},
 		{
-			ID:          uuid.New().String(),
+			ID:            uuid.New().String(),
 			StripeEventID: "evt_test111111111",
-			EventType:   "payout.created",
-			Processed:   false,
-			EventData:   s.buildEventData(map[string]interface{}{"payout": "po_test111111111", "amount": 4750}),
+			EventType:     "payout.created",
+			Processed:     false,
+			EventData:     s.buildEventData(map[string]interface{}{"payout": "po_test111111111", "amount": 4750}),
 		},
 		{
-			ID:          uuid.New().String(),
+			ID:            uuid.New().String(),
 			StripeEventID: "evt_test222222222",
-			EventType:   "account.updated",
-			Processed:   true,
-			EventData:   s.buildEventData(map[string]interface{}{"account": "acct_test123456789", "charges_enabled": true}),
+			EventType:     "account.updated",
+			Processed:     true,
+			EventData:     s.buildEventData(map[string]interface{}{"account": "acct_test123456789", "charges_enabled": true}),
 		},
 	}
 
@@ -395,7 +395,7 @@ func (s *Seeder) SeedStripeEvents() error {
 // Cleanup removes all seeded data
 func (s *Seeder) Cleanup() error {
 	s.logger.Info("Cleaning up seeded data")
-	
+
 	tables := []string{
 		"stripe_events",
 		"application_fees",
@@ -404,13 +404,13 @@ func (s *Seeder) Cleanup() error {
 		"payment_intents",
 		"connected_accounts",
 	}
-	
+
 	for _, table := range tables {
 		if err := s.db.Exec("DELETE FROM " + table).Error; err != nil {
 			return fmt.Errorf("failed to cleanup table %s: %w", table, err)
 		}
 	}
-	
+
 	s.logger.Info("Seeded data cleanup completed")
 	return nil
 }
@@ -430,6 +430,11 @@ func (s *Seeder) buildEventData(data map[string]interface{}) string {
 // Helper function to create string pointer
 func stringPtr(s string) *string {
 	return &s
+}
+
+// Helper function to create time pointer
+func timePtr(t time.Time) *time.Time {
+	return &t
 }
 
 // SeedTestData is a convenience function to seed test data
