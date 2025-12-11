@@ -9,7 +9,7 @@ import (
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 
-	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/models"
+	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/models"
 )
 
 type PostgresRepo struct {
@@ -35,7 +35,7 @@ func (r *PostgresRepo) WithTx(tx *sql.Tx) AuctionRepo {
 
 func (r *PostgresRepo) Create(ctx context.Context, auction *models.Auction) error {
 	query := `INSERT INTO auctions (auction_id, product_id, seller_id, title, description, starting_price, reserve_price, min_bid_increment, start_time, end_time, status, type, is_active, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`
-	_, err := r.db.ExecContext(ctx, query, auction.AuctionID, auction.ProductID, auction.SellerID, auction.Title, auction.Description, auction.StartingPrice, auction.ReservePrice, auction.MinBidIncrement, auction.StartTime, auction.EndTime, auction.Status, auction.Type, auction.IsActive, auction.CreatedAt, auction.UpdatedAt)
+	_, err := r.db.ExecContext(ctx, query, auction.AuctionID, auction.ProductID, auction.SellerID, auction.Title, auction.Description, auction.StartingPrice, auction.ReservePrice, auction.MinBidIncrement, auction.StartTime, auction.EndTime, auction.Status, auction.Type, auction.IsAuctionActive, auction.CreatedAt, auction.UpdatedAt)
 	return err
 }
 
@@ -44,7 +44,7 @@ func (r *PostgresRepo) GetByID(ctx context.Context, id string) (*models.Auction,
 	row := r.db.QueryRowContext(ctx, query, id)
 
 	auction := &models.Auction{}
-	if err := row.Scan(&auction.AuctionID, &auction.ProductID, &auction.SellerID, &auction.Title, &auction.Description, &auction.StartingPrice, &auction.CurrentPrice, &auction.ReservePrice, &auction.MinBidIncrement, &auction.StartTime, &auction.EndTime, &auction.Status, &auction.Type, &auction.IsActive, &auction.CreatedAt, &auction.UpdatedAt); err != nil {
+	if err := row.Scan(&auction.AuctionID, &auction.ProductID, &auction.SellerID, &auction.Title, &auction.Description, &auction.StartingPrice, &auction.CurrentPrice, &auction.ReservePrice, &auction.MinBidIncrement, &auction.StartTime, &auction.EndTime, &auction.Status, &auction.Type, &auction.IsAuctionActive, &auction.CreatedAt, &auction.UpdatedAt); err != nil {
 		return nil, err
 	}
 	return auction, nil
@@ -75,7 +75,7 @@ func (r *PostgresRepo) List(ctx context.Context) ([]*models.Auction, error) {
 		err := rows.Scan(
 			&auction.AuctionID, &auction.ProductID, &auction.SellerID, &auction.Title, &auction.Description,
 			&auction.StartingPrice, &auction.CurrentPrice, &auction.ReservePrice, &auction.MinBidIncrement,
-			&auction.StartTime, &auction.EndTime, &auction.Status, &auction.Type, &auction.IsActive,
+			&auction.StartTime, &auction.EndTime, &auction.Status, &auction.Type, &auction.IsAuctionActive,
 			&auction.CreatedAt, &auction.UpdatedAt,
 		)
 		if err != nil {
@@ -199,7 +199,7 @@ func (r *PostgresRepo) GetActive(ctx context.Context) ([]*models.Auction, error)
 		err := rows.Scan(
 			&auction.AuctionID, &auction.ProductID, &auction.SellerID, &auction.Title, &auction.Description,
 			&auction.StartingPrice, &auction.CurrentPrice, &auction.ReservePrice, &auction.MinBidIncrement,
-			&auction.StartTime, &auction.EndTime, &auction.Status, &auction.Type, &auction.IsActive,
+			&auction.StartTime, &auction.EndTime, &auction.Status, &auction.Type, &auction.IsAuctionActive,
 			&auction.CreatedAt, &auction.UpdatedAt,
 		)
 		if err != nil {

@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+	
+	"gorm.io/gorm"
 )
 
 // Auction Status Constants
@@ -47,7 +49,7 @@ type Auction struct {
 	EndTime         time.Time       `json:"end_time" gorm:"not null"`
 	Status          string          `json:"status" gorm:"not null;default:scheduled"`
 	Type            string          `json:"type" gorm:"not null;default:scheduled"`
-	IsActive        bool            `json:"is_active" gorm:"default:false"`
+	IsAuctionActive bool            `json:"is_active" gorm:"default:false"`
 	AutoExtend      bool            `json:"auto_extend" gorm:"default:false"`
 	ExtendMinutes   int             `json:"extend_minutes" gorm:"default:5"`
 	Featured        bool            `json:"featured" gorm:"default:false"`
@@ -77,7 +79,7 @@ type Bid struct {
 	BidderID    string    `json:"bidder_id" gorm:"not null;index"`
 	BidderName  string    `json:"bidder_name" gorm:"not null"`
 	Amount      float64   `json:"amount" gorm:"not null"`
-	IsWinning   bool      `json:"is_winning" gorm:"default:false"`
+IsWinning   bool      `json:"is_winning" gorm:"default:false"`
 	IsAutoBid   bool      `json:"is_auto_bid" gorm:"default:false"`
 	MaxAutoBid  float64   `json:"max_auto_bid" gorm:"default:0"`
 	Status      string    `json:"status" gorm:"default:active"`
@@ -346,7 +348,7 @@ func (a *Auction) IsEnded() bool {
 
 // IsActive checks if auction is active
 func (a *Auction) IsActive() bool {
-	return a.Status == AuctionStatusActive && a.IsActive
+return a.Status == AuctionStatusActive && a.IsAuctionActive
 }
 
 // GetTimeRemaining returns time remaining as string

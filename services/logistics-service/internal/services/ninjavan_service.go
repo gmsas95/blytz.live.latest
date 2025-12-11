@@ -12,9 +12,9 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"github.com/gmsas95/blytz-mvp/services/logistics-service/internal/config"
-	"github.com/gmsas95/blytz-mvp/services/logistics-service/internal/models"
-	"github.com/gmsas95/blytz-mvp/shared/pkg/errors"
+	"github.com/gmsas95/blytz.live.latest/services/logistics-service/internal/config"
+	"github.com/gmsas95/blytz.live.latest/services/logistics-service/internal/models"
+	"github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
 )
 
 type NinjaVanService struct {

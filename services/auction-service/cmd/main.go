@@ -15,15 +15,14 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 
-	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/api/handlers"
-	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/config"
-	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/models"
-	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/repository"
-	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/services"
-	"github.com/gmsas95/blytz-mvp/shared/pkg/errors"
-	"github.com/gmsas95/blytz-mvp/shared/pkg/utils"
+	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/api/handlers"
+	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/config"
+	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/models"
+	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/repository"
+	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/services"
+	"github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
+	"github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
 )
 
 func main() {
@@ -59,7 +58,12 @@ func main() {
 	}
 
 	// Initialize repository
-	repo := repository.NewPostgresRepo(db, zapLogger)
+	// Get underlying SQL DB for repository
+	sqlDB, err := db.DB()
+	if err != nil {
+		zapLogger.Fatal("🎵 Auction Service: Failed to get underlying SQL DB", zap.Error(err))
+	}
+	repo := repository.NewPostgresRepo(sqlDB, zapLogger)
 
 	// Initialize services
 	auctionService := services.NewAuctionService(repo, zapLogger, db)
@@ -81,9 +85,7 @@ func initDatabase(cfg *config.Config, logger *zap.Logger) (*gorm.DB, error) {
 		zap.String("database", cfg.PostgresDB))
 
 	// Open database connection
-	db, err := gorm.Open(postgres.Open(cfg.DatabaseURL), &gorm.Config{
-		Logger: gorm.Default.LogMode(gorm.Info),
-	})
+	db, err := gorm.Open(postgres.Open(cfg.DatabaseURL), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
@@ -170,9 +172,9 @@ func setupRouter(auctionHandler *handlers.AuctionHandler, cfg *config.Config, lo
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
 		health := utils.NewHealthStatus("ok")
-		health.AddService("database", "healthy")
-		health.AddService("bidding", "operational")
-		health.AddService("auctions", "operational")
+		health.AddService("database", "healthy", "Database connection")
+		health.AddService("bidding", "operational", "Bidding system")
+		health.AddService("auctions", "operational", "Auction management")
 		
 		utils.SendSuccessResponse(c, http.StatusOK, health)
 	})

@@ -8,27 +8,25 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v5"
 	"go.uber.org/zap"
 
-	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/models"
-	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/services"
-	shared_errors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
-	"github.com/gmsas95/blytz-mvp/shared/pkg/utils"
+	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/services"
+	shared_errors "github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
+	"github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
 )
 
 func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			utils.SendErrorResponse(c, shared_errors.ErrUnauthorized)
+			utils.SendErrorResponse(c, shared_errors.NewAuthenticationError("UNAUTHORIZED", "Authorization header required"))
 			c.Abort()
 			return
 		}
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 		if tokenString == authHeader {
-			utils.SendErrorResponse(c, shared_errors.ErrUnauthorized)
+			utils.SendErrorResponse(c, shared_errors.NewAuthenticationError("UNAUTHORIZED", "Invalid authorization header format"))
 			c.Abort()
 			return
 		}
@@ -36,7 +34,7 @@ func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
 		// Validate token using the new database-backed service
 		tokenResponse, err := authService.ValidateToken(tokenString)
 		if err != nil || !tokenResponse.Valid {
-			utils.SendErrorResponse(c, shared_errors.ErrUnauthorized)
+			utils.SendErrorResponse(c, shared_errors.NewAuthenticationError("UNAUTHORIZED", "Invalid token"))
 			c.Abort()
 			return
 		}
@@ -44,7 +42,6 @@ func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
 		// Set user context with validated token data
 		c.Set("userID", tokenResponse.UserID)
 		c.Set("userEmail", tokenResponse.Email)
-		c.Set("userRole", tokenResponse.Role)
 
 		c.Next()
 	}
@@ -78,7 +75,7 @@ func OptionalAuthMiddleware(authService *services.AuthService, logger *zap.Logge
 		}
 
 		// Try to validate token
-		response, err := authService.ValidateToken(c.Request.Context(), token)
+		response, err := authService.ValidateToken(token)
 		if err == nil && response.Valid {
 			// Token is valid, set user context
 			c.Set("userID", response.UserID)
@@ -114,7 +111,7 @@ func RoleMiddleware(requiredRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		_, exists := c.Get("userID")
 		if !exists {
-			utils.SendErrorResponse(c, shared_errors.AuthenticationError("NO_AUTH", "User not authenticated"))
+			utils.SendErrorResponse(c, shared_errors.NewAuthenticationError("NO_AUTH", "User not authenticated"))
 			c.Abort()
 			return
 		}
@@ -133,7 +130,7 @@ func RoleMiddleware(requiredRoles ...string) gin.HandlerFunc {
 		}
 
 		if !hasRole {
-			utils.SendErrorResponse(c, shared_errors.AuthorizationError("INSUFFICIENT_PRIVILEGES", "Insufficient privileges"))
+			utils.SendErrorResponse(c, shared_errors.NewAuthorizationError("INSUFFICIENT_PRIVILEGES", "Insufficient privileges"))
 			c.Abort()
 			return
 		}

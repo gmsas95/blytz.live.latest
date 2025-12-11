@@ -1,0 +1,9 @@
+module github.com/gmsas95/blytz.live.latest/services/notification-service
+
+go 1.25
+
+require (
+	github.com/gmsas95/blytz.live.latest/shared v0.0.0-00010101000000-000000000000
+)
+
+replace github.com/gmsas95/blytz.live.latest/shared => ../../shared

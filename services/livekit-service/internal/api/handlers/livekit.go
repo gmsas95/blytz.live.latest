@@ -7,10 +7,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	shared_errors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
-	shared_utils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
-	"github.com/gmsas95/blytz-mvp/services/livekit-service/internal/models"
-	"github.com/gmsas95/blytz-mvp/services/livekit-service/internal/services"
+	shared_errors "github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
+	shared_utils "github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
+	"github.com/gmsas95/blytz.live.latest/services/livekit-service/internal/models"
+	"github.com/gmsas95/blytz.live.latest/services/livekit-service/internal/services"
 )
 
 // LiveKitHandler handles LiveKit HTTP requests

@@ -58,7 +58,7 @@ func NewJWTConfig() *JWTConfig {
 	return &JWTConfig{
 		SecretKey:      GetEnv("JWT_SECRET", "your-secret-key"),
 		ExpirationTime: 24 * time.Hour,
-		Issuer:         GetEnv("JWT_ISSUER", "blytz-mvp"),
+		Issuer:         GetEnv("JWT_ISSUER", "blytz.live.latest"),
 	}
 }
 
@@ -83,7 +83,7 @@ func GenerateToken(userID, email, role string, config *JWTConfig) (string, error
 		"email":     claims.Email,
 		"role":      claims.Role,
 		"expires_at": claims.ExpiresAt,
-		"iss":       "blytz-mvp",
+		"iss":       "blytz.live.latest",
 		"iat":       time.Now().Unix(),
 	}
 	

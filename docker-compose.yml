@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Database Services
   postgres:
@@ -36,77 +34,11 @@ services:
       context: ./services/auth-service
       dockerfile: Dockerfile
     ports:
-      - "8084:8084"
+      - "8085:8085"
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
       - JWT_SECRET=your-secret-key
       - BETTER_AUTH_SECRET=your-better-auth-secret
-      - ENVIRONMENT=production
-      - LOG_LEVEL=info
-      - PORT=8084
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8084/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
-
-  product-service:
-    build:
-      context: ./services/product-service
-      dockerfile: Dockerfile
-    ports:
-      - "8082:8082"
-    environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
-      - ENVIRONMENT=production
-      - LOG_LEVEL=info
-      - PORT=8082
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
-
-  auction-service:
-    build:
-      context: ./services/auction-service
-      dockerfile: Dockerfile
-    ports:
-      - "8083:8083"
-    environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
-      - REDIS_URL=redis://redis:6379
-      - ENVIRONMENT=production
-      - LOG_LEVEL=info
-      - PORT=8083
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8083/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
-
-  order-service:
-    build:
-      context: ./services/order-service
-      dockerfile: Dockerfile
-    ports:
-      - "8085:8085"
-    environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
       - ENVIRONMENT=production
       - LOG_LEVEL=info
       - PORT=8085
@@ -120,9 +52,9 @@ services:
       retries: 3
     restart: unless-stopped
 
-  payment-service:
+  product-service:
     build:
-      context: ./services/payment-service
+      context: ./services/product-service
       dockerfile: Dockerfile
     ports:
       - "8086:8086"
@@ -131,11 +63,6 @@ services:
       - ENVIRONMENT=production
       - LOG_LEVEL=info
       - PORT=8086
-      - STRIPE_SECRET_KEY=sk_test_example
-      - STRIPE_WEBHOOK_SECRET=whsec_example
-      - FIUU_MERCHANT_ID=example_merchant
-      - FIUU_VERIFY_KEY=example_verify_key
-      - FIUU_SANDBOX=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -146,9 +73,33 @@ services:
       retries: 3
     restart: unless-stopped
 
-  chat-service:
+  auction-service:
     build:
-      context: ./services/chat-service
+      context: ./services/auction-service
+      dockerfile: Dockerfile
+    ports:
+      - "8087:8087"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
+      - REDIS_URL=redis://redis:6379
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+      - PORT=8087
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8087/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  order-service:
+    build:
+      context: ./services/order-service
       dockerfile: Dockerfile
     ports:
       - "8088:8088"
@@ -167,24 +118,92 @@ services:
       retries: 3
     restart: unless-stopped
 
+  payment-service:
+    build:
+      context: ./services/payment-service
+      dockerfile: Dockerfile
+    ports:
+      - "8089:8089"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+      - PORT=8089
+      - STRIPE_SECRET_KEY=sk_test_example
+      - STRIPE_WEBHOOK_SECRET=whsec_example
+      - FIUU_MERCHANT_ID=example_merchant
+      - FIUU_VERIFY_KEY=example_verify_key
+      - FIUU_SANDBOX=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8089/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  chat-service:
+    build:
+      context: ./services/chat-service
+      dockerfile: Dockerfile
+    ports:
+      - "8090:8090"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+      - PORT=8090
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
   logistics-service:
     build:
       context: ./services/logistics-service
       dockerfile: Dockerfile
     ports:
-      - "8087:8087"
+      - "8091:8091"
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
       - ENVIRONMENT=production
       - LOG_LEVEL=info
-      - PORT=8087
+      - PORT=8091
       - NINJAVAN_API_KEY=example_api_key
       - NINJAVAN_API_SECRET=example_api_secret
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8087/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8091/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    ports:
+      - "8094:8094"
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+      - PORT=8094
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8094/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -196,11 +215,11 @@ services:
       context: ./services/gateway
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      - "8092:8092"
     environment:
       - ENVIRONMENT=production
       - LOG_LEVEL=info
-      - PORT=8080
+      - PORT=8092
     depends_on:
       auth-service:
         condition: service_healthy
@@ -217,7 +236,7 @@ services:
       logistics-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8092/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -229,23 +248,23 @@ services:
       context: ./services/livekit-service
       dockerfile: Dockerfile
     ports:
-      - "8089:8089"
+      - "8093:8093"
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db
       - LIVEKIT_API_KEY=devkey
       - LIVEKIT_API_SECRET=devsecret
       - LIVEKIT_URL=https://blytz-live-u5u72ozx.livekit.cloud
-      - AUTH_SERVICE_URL=http://auth-service:8084
+      - AUTH_SERVICE_URL=http://auth-service:8085
       - ENVIRONMENT=production
       - LOG_LEVEL=info
-      - PORT=8089
+      - PORT=8093
     depends_on:
       auth-service:
         condition: service_healthy
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8089/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8093/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -257,7 +276,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8080
+      - NEXT_PUBLIC_API_URL=http://localhost:8092
     depends_on:
       gateway:
         condition: service_healthy

@@ -4,10 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"time"
 
 	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/models"
-	"github.com/google/uuid"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 

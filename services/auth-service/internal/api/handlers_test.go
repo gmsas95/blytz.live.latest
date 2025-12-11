@@ -13,9 +13,9 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
-	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/config"
-	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/models"
-	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/services"
+	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/config"
+	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/models"
+	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/services"
 )
 
 func setupTestRouter() (*gin.Engine, *gorm.DB) {

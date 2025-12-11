@@ -1,0 +1,7 @@
+module github.com/gmsas95/blytz.live.latest/services/auth-service
+
+go 1.25.0
+
+require (
+	github.com/gin-gonic/gin v1.9.1
+)

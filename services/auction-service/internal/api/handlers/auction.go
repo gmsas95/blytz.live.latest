@@ -7,8 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/models"
-	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/services"
+	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/models"
+	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/services"
 )
 
 // AuctionHandler handles auction operations

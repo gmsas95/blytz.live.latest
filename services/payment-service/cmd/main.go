@@ -14,10 +14,10 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	shared_utils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
-	shared_errors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
-	"github.com/gmsas95/blytz-mvp/services/payment-service/internal/models"
-	"github.com/gmsas95/blytz-mvp/services/payment-service/internal/services"
+	shared_utils "github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
+	shared_errors "github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
+	"github.com/gmsas95/blytz.live.latest/services/payment-service/internal/models"
+	"github.com/gmsas95/blytz.live.latest/services/payment-service/internal/services"
 )
 
 // PaymentHandler handles HTTP requests for payments

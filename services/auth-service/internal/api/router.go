@@ -6,10 +6,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/api/handlers"
-	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/config"
-	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/middleware"
-	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/services"
+	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/api/handlers"
+	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/config"
+	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/middleware"
+	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/services"
 	"go.uber.org/zap"
 )
 

@@ -16,11 +16,10 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/gmsas95/blytz-mvp/services/chat-service/internal/api/handlers"
-	"github.com/gmsas95/blytz-mvp/services/chat-service/internal/models"
-	"github.com/gmsas95/blytz-mvp/services/chat-service/internal/services"
-	sharedErrors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
-	sharedUtils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
+	"github.com/gmsas95/blytz.live.latest/services/chat-service/internal/api/handlers"
+	"github.com/gmsas95/blytz.live.latest/services/chat-service/internal/models"
+	"github.com/gmsas95/blytz.live.latest/services/chat-service/internal/services"
+	sharedUtils "github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
 )
 
 // WebSocket upgrader
@@ -95,7 +94,7 @@ func main() {
 	go wsManager.run()
 
 	// Setup Gin router
-	router := setupRouter(chatHandler, wsManager, logger)
+	router := setupRouter(db, chatHandler, wsManager, logger)
 
 	// Start server
 	port := sharedUtils.GetEnv("PORT", "8088")
@@ -191,7 +190,7 @@ func migrateDatabase(db *gorm.DB) error {
 }
 
 // setupRouter sets up Gin router with all routes
-func setupRouter(chatHandler *handlers.ChatHandler, wsManager *WebSocketManager, logger *zap.Logger) *gin.Engine {
+func setupRouter(db *gorm.DB, chatHandler *handlers.ChatHandler, wsManager *WebSocketManager, logger *zap.Logger) *gin.Engine {
 	// Set Gin mode
 	gin.SetMode(gin.ReleaseMode)
 

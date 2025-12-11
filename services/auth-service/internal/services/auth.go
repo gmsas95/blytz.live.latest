@@ -2,74 +2,203 @@ package services
 
 import (
 	"context"
-	"errors"
+	"crypto/rand"
+	"database/sql"
+	"encoding/base64"
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 
-	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/config"
-	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/models"
-	shared_errors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
-	shared_utils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
+	shared_errors "github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
+	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/models"
+	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/repository"
 )
 
-// AuthService provides authentication related services
-
 type AuthService struct {
-	db     *gorm.DB
-	config *config.Config
+	userRepo         *repository.UserRepository
+	refreshTokenRepo *repository.RefreshTokenRepository
+	jwtSecret        string
+	logger           *zap.Logger
 }
 
-// GetConfig returns the service configuration
-func (s *AuthService) GetConfig() *config.Config {
-	return s.config
-}
-
-// NewAuthService creates a new AuthService
-func NewAuthService(db *gorm.DB, config *config.Config) *AuthService {
-	return &AuthService{db: db, config: config}
-}
-
-// RegisterUser registers a new user
-func (s *AuthService) RegisterUser(user *models.User) error {
-	// Check if user already exists
-	if s.userExists(user.Email) {
-		return shared_errors.ConflictError("USER_EXISTS", "User already exists")
+func NewAuthService(db interface{}, jwtSecret string, logger *zap.Logger) *AuthService {
+	// Type assertion to handle both sql.DB and other database types
+	var sqlDB *sql.DB
+	switch v := db.(type) {
+	case *sql.DB:
+		sqlDB = v
+	default:
+		// For now, we'll handle this case - in production this should be properly typed
+		panic("database connection must be *sql.DB")
 	}
 
-	// Generate unique ID for user
-	user.ID = uuid.New().String()
+	return &AuthService{
+		userRepo:         repository.NewUserRepository(sqlDB),
+		refreshTokenRepo: repository.NewRefreshTokenRepository(sqlDB),
+		jwtSecret:        jwtSecret,
+		logger:           logger,
+	}
+}
+
+// RegisterUser creates a new user account
+func (s *AuthService) RegisterUser(user *models.User) error {
+	ctx := context.Background()
+
+	// Check if email already exists
+	exists, err := s.userRepo.EmailExists(ctx, user.Email)
+	if err != nil {
+		s.logger.Error("Failed to check email existence", zap.Error(err))
+		return shared_errors.NewDatabaseError("EMAIL_CHECK_FAILED", "Failed to check email existence")
+	}
+
+	if exists {
+		return shared_errors.NewConflictError("EMAIL_EXISTS", "Email already registered")
+	}
 
 	// Hash password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.PasswordHash), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		s.logger.Error("Failed to hash password", zap.Error(err))
+		return shared_errors.NewInternalError("PASSWORD_HASH_FAILED", "Failed to hash password")
 	}
-	user.Password = string(hashedPassword)
+
+	user.PasswordHash = string(hashedPassword)
+	user.IsActive = true
+	user.EmailVerified = false
+	user.Role = "user" // Default role
 
 	// Create user
-	return s.db.Create(user).Error
-}
-
-// LoginUser logs in a user and returns a JWT token
-func (s *AuthService) LoginUser(email, password string) (string, error) {
-	// Get user by email
-	user, err := s.GetUserByEmail(email)
+	err = s.userRepo.Create(ctx, user)
 	if err != nil {
-		return "", shared_errors.AuthenticationError("INVALID_CREDENTIALS", "Invalid email or password")
+		s.logger.Error("Failed to create user", zap.Error(err))
+		return shared_errors.NewDatabaseError("USER_CREATION_FAILED", "Failed to create user")
 	}
 
-	// Check password
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	s.logger.Info("User registered successfully",
+		zap.String("user_id", user.ID),
+		zap.String("email", user.Email))
+
+	return nil
+}
+
+// LoginUser authenticates a user and returns JWT tokens
+func (s *AuthService) LoginUser(email, password string) (string, error) {
+	ctx := context.Background()
+
+	// Get user by email
+	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
-		return "", shared_errors.AuthenticationError("INVALID_CREDENTIALS", "Invalid email or password")
+		s.logger.Warn("Login attempt with non-existent email",
+			zap.String("email", email))
+		return "", shared_errors.NewAuthenticationError("INVALID_CREDENTIALS", "Invalid email or password")
+	}
+
+	// Verify password
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
+	if err != nil {
+		s.logger.Warn("Login attempt with invalid password",
+			zap.String("email", email),
+			zap.String("user_id", user.ID))
+		return "", shared_errors.NewAuthenticationError("INVALID_CREDENTIALS", "Invalid email or password")
+	}
+
+	// Update last login
+	err = s.userRepo.UpdateLastLogin(ctx, user.ID)
+	if err != nil {
+		s.logger.Warn("Failed to update last login",
+			zap.String("user_id", user.ID),
+			zap.Error(err))
+		// Don't fail login if we can't update last login
 	}
 
 	// Generate JWT token
 	token, err := s.generateJWT(user)
+	if err != nil {
+		s.logger.Error("Failed to generate JWT",
+			zap.String("user_id", user.ID),
+			zap.Error(err))
+		return "", shared_errors.NewInternalError("TOKEN_GENERATION_FAILED", "Failed to generate authentication token")
+	}
+
+	s.logger.Info("User logged in successfully",
+		zap.String("user_id", user.ID),
+		zap.String("email", user.Email))
+
+	return token, nil
+}
+
+// ValidateToken validates a JWT token and returns user information
+func (s *AuthService) ValidateToken(tokenString string) (*models.ValidateTokenResponse, error) {
+	// Parse and validate token
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(s.jwtSecret), nil
+	})
+
+	if err != nil {
+		return &models.ValidateTokenResponse{Valid: false}, nil
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		userID, ok := claims["user_id"].(string)
+		if !ok {
+			return &models.ValidateTokenResponse{Valid: false}, nil
+		}
+
+		email, _ := claims["email"].(string)
+
+		return &models.ValidateTokenResponse{
+			Valid:   true,
+			UserID:  userID,
+			Email:   email,
+		}, nil
+	}
+
+	return &models.ValidateTokenResponse{Valid: false}, nil
+}
+
+// GenerateJWT creates a JWT token for a user
+func (s *AuthService) GenerateJWT(user *models.User) (string, error) {
+	claims := jwt.MapClaims{
+		"user_id": user.ID,
+		"email":   user.Email,
+		"role":    user.Role,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(), // 24 hours
+		"iat":     time.Now().Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(s.jwtSecret))
+}
+
+// GenerateRefreshToken creates a refresh token
+func (s *AuthService) GenerateRefreshToken(userID string) (string, error) {
+	// Generate random token
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+
+	token := base64.URLEncoding.EncodeToString(bytes)
+
+	// Store in database
+	refreshToken := &models.RefreshToken{
+		ID:        uuid.New().String(),
+		UserID:    userID,
+		Token:     token,
+		ExpiresAt: time.Now().Add(time.Hour * 24 * 7), // 7 days
+		CreatedAt: time.Now(),
+		IsRevoked: false,
+	}
+	ctx := context.Background()
+
+	err := s.refreshTokenRepo.Create(ctx, refreshToken)
 	if err != nil {
 		return "", err
 	}
@@ -77,69 +206,47 @@ func (s *AuthService) LoginUser(email, password string) (string, error) {
 	return token, nil
 }
 
-// GetUserByEmail gets a user by email
-func (s *AuthService) GetUserByEmail(email string) (*models.User, error) {
-	var user models.User
-	if err := s.db.Where("email = ?", email).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, shared_errors.AuthenticationError("INVALID_CREDENTIALS", "Invalid email or password")
-		}
-		return nil, shared_errors.DatabaseError("USER_QUERY_FAILED", "Failed to query user")
-	}
-	return &user, nil
-}
+// RefreshAccessToken generates a new access token from refresh token
+func (s *AuthService) RefreshAccessToken(refreshTokenString string) (string, error) {
+	ctx := context.Background()
 
-// ValidateToken validates a JWT token and returns the claims
-func (s *AuthService) ValidateToken(ctx context.Context, tokenString string) (*models.ValidateTokenResponse, error) {
-	// Use shared JWT validation utility
-	claims, err := shared_utils.ValidateJWT(tokenString, s.config.JWTSecret)
+	// Validate refresh token
+	refreshToken, err := s.refreshTokenRepo.GetByToken(ctx, refreshTokenString)
 	if err != nil {
-		return &models.ValidateTokenResponse{
-			Valid:   false,
-			Message: "Invalid token: " + err.Error(),
-		}, nil
+		return "", shared_errors.NewAuthenticationError("INVALID_REFRESH_TOKEN", "Invalid or expired refresh token")
 	}
 
-	return &models.ValidateTokenResponse{
-		Valid:   true,
-		UserID:  claims.UserID,
-		Email:   claims.Email,
-		Message: "Token is valid",
-	}, nil
+	// Get user
+	user, err := s.userRepo.GetByID(ctx, refreshToken.UserID)
+	if err != nil {
+		return "", shared_errors.NewAuthenticationError("USER_NOT_FOUND", "User not found")
+	}
+
+	// Generate new access token
+	return s.generateJWT(user)
 }
 
-// userExists checks if a user exists by email
-func (s *AuthService) userExists(email string) bool {
-	var user models.User
-	return s.db.Where("email = ?", email).First(&user).Error == nil
-}
-
-// generateJWT generates a JWT token for a user
-func (s *AuthService) generateJWT(user *models.User) (string, error) {
-	// Use shared JWT generation utility
-	return shared_utils.GenerateJWT(user.ID, user.Email, s.config.JWTSecret, time.Hour*24)
-}
-
-// GetUserByID gets a user by ID
+// GetUserByID retrieves a user by ID
 func (s *AuthService) GetUserByID(userID string) (*models.User, error) {
-	var user models.User
-	if err := s.db.Where("id = ?", userID).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, shared_errors.NotFoundError("USER_NOT_FOUND", "User not found")
-		}
-		return nil, shared_errors.DatabaseError("USER_QUERY_FAILED", "Failed to query user")
+	ctx := context.Background()
+
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return nil, shared_errors.NewNotFoundError("USER_NOT_FOUND", "User not found")
 	}
-	return &user, nil
+
+	// Clear password hash for security
+	user.PasswordHash = ""
+
+	return user, nil
 }
 
 // UpdateUserProfile updates user profile information
 func (s *AuthService) UpdateUserProfile(ctx context.Context, userID string, req *models.UpdateProfileRequest) error {
-	var user models.User
-	if err := s.db.Where("id = ?", userID).First(&user).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return shared_errors.NotFoundError("USER_NOT_FOUND", "User not found")
-		}
-		return shared_errors.DatabaseError("USER_QUERY_FAILED", "Failed to query user")
+	// Get current user
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		return shared_errors.NewNotFoundError("USER_NOT_FOUND", "User not found")
 	}
 
 	// Update fields if provided
@@ -153,13 +260,62 @@ func (s *AuthService) UpdateUserProfile(ctx context.Context, userID string, req 
 		user.AvatarURL = req.AvatarURL
 	}
 
-	user.UpdatedAt = time.Now()
+	// Save changes
+	err = s.userRepo.Update(ctx, user)
+	if err != nil {
+		s.logger.Error("Failed to update user profile",
+			zap.String("user_id", userID),
+			zap.Error(err))
+		return shared_errors.NewDatabaseError("PROFILE_UPDATE_FAILED", "Failed to update profile")
+	}
 
-	return s.db.Save(&user).Error
+	s.logger.Info("User profile updated",
+		zap.String("user_id", userID))
+
+	return nil
 }
 
-// GenerateJWT generates a JWT token for a user (public method)
-func (s *AuthService) GenerateJWT(user *models.User) (string, error) {
-	return s.generateJWT(user)
+// Logout revokes a refresh token
+func (s *AuthService) Logout(refreshTokenString string) error {
+	ctx := context.Background()
+
+	err := s.refreshTokenRepo.Revoke(ctx, refreshTokenString)
+	if err != nil {
+		s.logger.Warn("Failed to revoke refresh token during logout", zap.Error(err))
+		// Don't fail logout if token doesn't exist
+	}
+
+	return nil
 }
 
+// LogoutAll revokes all refresh tokens for a user
+func (s *AuthService) LogoutAll(userID string) error {
+	ctx := context.Background()
+
+	err := s.refreshTokenRepo.RevokeAllForUser(ctx, userID)
+	if err != nil {
+		s.logger.Error("Failed to revoke all refresh tokens",
+			zap.String("user_id", userID),
+			zap.Error(err))
+		return shared_errors.NewDatabaseError("LOGOUT_ALL_FAILED", "Failed to logout from all devices")
+	}
+
+	s.logger.Info("User logged out from all devices",
+		zap.String("user_id", userID))
+
+	return nil
+}
+
+// generateJWT creates a JWT token for a user (private method)
+func (s *AuthService) generateJWT(user *models.User) (string, error) {
+	claims := jwt.MapClaims{
+		"user_id": user.ID,
+		"email":   user.Email,
+		"role":    user.Role,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(), // 24 hours
+		"iat":     time.Now().Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(s.jwtSecret))
+}

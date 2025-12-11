@@ -14,9 +14,9 @@ import (
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 
-	shared_utils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
-	"github.com/gmsas95/blytz-mvp/services/livekit-service/internal/api/handlers"
-	"github.com/gmsas95/blytz-mvp/services/livekit-service/internal/services"
+	shared_utils "github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
+	"github.com/gmsas95/blytz.live.latest/services/livekit-service/internal/api/handlers"
+	"github.com/gmsas95/blytz.live.latest/services/livekit-service/internal/services"
 )
 
 func main() {

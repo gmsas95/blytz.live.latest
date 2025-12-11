@@ -1,0 +1,34 @@
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app
+
+# Copy go mod and sum files
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN go build -o notification-service .
+
+FROM alpine:latest
+
+RUN apk --no-cache add ca-certificates curl
+
+WORKDIR /root/
+
+# Copy the binary from builder stage
+COPY --from=builder /app/notification-service .
+
+# Expose port
+EXPOSE 8094
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8094/health || exit 1
+
+# Run the binary
+CMD ["./notification-service"]

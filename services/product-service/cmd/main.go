@@ -16,8 +16,8 @@ import (
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 
-	shared_utils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
-	shared_errors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
+	shared_utils "github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
+	shared_errors "github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
 	"github.com/gmsas95/blytz.live.latest/services/product-service/internal/models"
 )
 
@@ -767,7 +767,7 @@ func main() {
 	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8082" // Use port 8082 as per docker-compose.yml
+		port = "8086" // Use port 8086 as per docker-compose.yml
 	}
 
 	logger.Info("Product Service starting",

@@ -8,8 +8,8 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/models"
-	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/repository"
+	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/models"
+	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/repository"
 )
 
 type AuctionService struct {
@@ -61,7 +61,7 @@ func (s *AuctionService) CreateAuction(ctx context.Context, sellerID string, req
 		Category:        req.Category,
 		Subcategory:     req.Subcategory,
 		Status:          models.AuctionStatusScheduled,
-		IsActive:        false,
+		IsAuctionActive: false,
 	}
 
 	// Set tags array
@@ -667,7 +667,7 @@ func (s *AuctionService) StartAuction(ctx context.Context, auctionID string) err
 
 	// Update auction
 	auction.Status = models.AuctionStatusActive
-	auction.IsActive = true
+	auction.IsAuctionActive = true
 
 	if err := s.db.Save(&auction).Error; err != nil {
 		return fmt.Errorf("failed to start auction: %w", err)
@@ -718,7 +718,7 @@ func (s *AuctionService) EndAuction(ctx context.Context, auctionID string) error
 
 	// Update auction
 	auction.Status = models.AuctionStatusEnded
-	auction.IsActive = false
+	auction.IsAuctionActive = false
 	auction.FinalPrice = finalPrice
 	auction.EndReason = endReason
 	auction.EndTime = time.Now()

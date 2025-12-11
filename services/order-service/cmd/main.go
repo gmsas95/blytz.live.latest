@@ -14,9 +14,9 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	shared_utils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
-	shared_errors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
-	"github.com/gmsas95/blytz-mvp/services/order-service/internal/models"
+	shared_utils "github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
+	shared_errors "github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
+	"github.com/gmsas95/blytz.live.latest/services/order-service/internal/models"
 )
 
 // OrderHandler handles HTTP requests for orders

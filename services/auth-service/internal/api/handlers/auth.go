@@ -6,10 +6,10 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/models"
-	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/services"
-	"github.com/gmsas95/blytz-mvp/shared/pkg/utils"
-	shared_errors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
+	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/models"
+	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/services"
+	"github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
+	shared_errors "github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
 )
 
 type AuthHandler struct {
@@ -23,7 +23,7 @@ func NewAuthHandler(authService *services.AuthService) *AuthHandler {
 func (h *AuthHandler) Register(c *gin.Context) {
 	var user models.User
 	if err := c.ShouldBindJSON(&user); err != nil {
-		utils.SendErrorResponse(c, shared_errors.ErrInvalidRequestBody)
+		utils.SendErrorResponse(c, shared_errors.NewValidationError("INVALID_REQUEST_BODY", "Invalid request body"))
 		return
 	}
 
@@ -42,7 +42,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&loginDetails); err != nil {
-		utils.SendErrorResponse(c, shared_errors.ErrInvalidRequestBody)
+		utils.SendErrorResponse(c, shared_errors.NewValidationError("INVALID_REQUEST_BODY", "Invalid request body"))
 		return
 	}
 
@@ -58,15 +58,15 @@ func (h *AuthHandler) Login(c *gin.Context) {
 func (h *AuthHandler) SignUp(c *gin.Context) {
 	var req models.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.SendErrorResponse(c, shared_errors.ErrInvalidRequestBody)
+		utils.SendErrorResponse(c, shared_errors.NewValidationError("INVALID_REQUEST_BODY", "Invalid request body"))
 		return
 	}
 
 	user := &models.User{
-		Email:       req.Email,
-		Password:    req.Password,
-		DisplayName: req.DisplayName,
-		PhoneNumber: req.PhoneNumber,
+		Email:         req.Email,
+		PasswordHash:  req.Password, // Will be hashed in service
+		DisplayName:   req.DisplayName,
+		PhoneNumber:   req.PhoneNumber,
 	}
 
 	if err := h.authService.RegisterUser(user); err != nil {
@@ -80,12 +80,12 @@ func (h *AuthHandler) SignUp(c *gin.Context) {
 func (h *AuthHandler) Verify(c *gin.Context) {
 	var req models.ValidateTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.SendErrorResponse(c, shared_errors.ErrInvalidRequestBody)
+		utils.SendErrorResponse(c, shared_errors.NewValidationError("INVALID_REQUEST_BODY", "Invalid request body"))
 		return
 	}
 
 	// Validate the token using the auth service
-	response, err := h.authService.ValidateToken(context.Background(), req.Token)
+	response, err := h.authService.ValidateToken(req.Token)
 	if err != nil {
 		utils.SendErrorResponse(c, err)
 		return
@@ -97,12 +97,12 @@ func (h *AuthHandler) Verify(c *gin.Context) {
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	var req models.RefreshTokenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.SendErrorResponse(c, shared_errors.ErrInvalidRequestBody)
+		utils.SendErrorResponse(c, shared_errors.NewValidationError("INVALID_REQUEST_BODY", "Invalid request body"))
 		return
 	}
 
 	// First validate the current token
-	validationResponse, err := h.authService.ValidateToken(context.Background(), req.RefreshToken)
+	validationResponse, err := h.authService.ValidateToken(req.RefreshToken)
 	if err != nil || !validationResponse.Valid {
 		utils.SendErrorResponse(c, errors.New("invalid refresh token"))
 		return
@@ -138,13 +138,13 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 		if authHeader != "" && len(authHeader) > 7 && authHeader[:7] == "Bearer " {
 			req.Token = authHeader[7:]
 		} else {
-			utils.SendErrorResponse(c, shared_errors.ErrInvalidRequestBody)
+			utils.SendErrorResponse(c, shared_errors.NewValidationError("INVALID_REQUEST_BODY", "Invalid request body"))
 			return
 		}
 	}
 
 	// Validate the token first
-	validationResponse, err := h.authService.ValidateToken(c.Request.Context(), req.Token)
+	validationResponse, err := h.authService.ValidateToken(req.Token)
 	if err != nil || !validationResponse.Valid {
 		utils.SendErrorResponse(c, errors.New("invalid token"))
 		return
@@ -158,7 +158,7 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	var req models.UpdateProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		utils.SendErrorResponse(c, shared_errors.ErrInvalidRequestBody)
+		utils.SendErrorResponse(c, shared_errors.NewValidationError("INVALID_REQUEST_BODY", "Invalid request body"))
 		return
 	}
 
