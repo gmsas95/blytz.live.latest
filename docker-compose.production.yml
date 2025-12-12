@@ -24,11 +24,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 2G
-          cpus: '1.0'
-        reservations:
-          memory: 1G
+          memory: 512M
           cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
 
   redis:
     image: redis:7-alpine
@@ -44,11 +44,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
-          cpus: '0.5'
-        reservations:
           memory: 256M
           cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.125'
 
   # Backend Services
   auth-service:
@@ -86,11 +86,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
-          cpus: '0.5'
+          memory: 192M
+          cpus: '0.3'
         reservations:
-          memory: 128M
-          cpus: '0.25'
+          memory: 96M
+          cpus: '0.15'
 
   product-service:
     build:
@@ -114,11 +114,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
-          cpus: '0.5'
+          memory: 192M
+          cpus: '0.3'
         reservations:
-          memory: 128M
-          cpus: '0.25'
+          memory: 96M
+          cpus: '0.15'
 
   auction-service:
     build:
@@ -182,11 +182,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
-          cpus: '0.5'
+          memory: 192M
+          cpus: '0.3'
         reservations:
-          memory: 128M
-          cpus: '0.25'
+          memory: 96M
+          cpus: '0.15'
 
   payment-service:
     build:
@@ -215,11 +215,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
-          cpus: '0.5'
+          memory: 192M
+          cpus: '0.3'
         reservations:
-          memory: 128M
-          cpus: '0.25'
+          memory: 96M
+          cpus: '0.15'
 
   chat-service:
     build:
@@ -256,11 +256,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
-          cpus: '1.0'
-        reservations:
           memory: 256M
           cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
 
   logistics-service:
     build:
@@ -288,11 +288,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
-          cpus: '0.5'
+          memory: 192M
+          cpus: '0.3'
         reservations:
-          memory: 128M
-          cpus: '0.25'
+          memory: 96M
+          cpus: '0.15'
 
   search-service:
     build:
@@ -326,11 +326,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 384M
-          cpus: '0.75'
+          memory: 256M
+          cpus: '0.5'
         reservations:
-          memory: 192M
-          cpus: '0.375'
+          memory: 128M
+          cpus: '0.25'
 
   notification-service:
     build:
@@ -364,11 +364,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 384M
-          cpus: '0.75'
+          memory: 256M
+          cpus: '0.5'
         reservations:
-          memory: 192M
-          cpus: '0.375'
+          memory: 128M
+          cpus: '0.25'
 
   stripe-service:
     build:
@@ -395,11 +395,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
-          cpus: '0.5'
+          memory: 192M
+          cpus: '0.3'
         reservations:
-          memory: 128M
-          cpus: '0.25'
+          memory: 96M
+          cpus: '0.15'
 
   # API Gateway
   gateway:
@@ -453,11 +453,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
-          cpus: '0.5'
+          memory: 192M
+          cpus: '0.3'
         reservations:
-          memory: 128M
-          cpus: '0.25'
+          memory: 96M
+          cpus: '0.15'
 
   # LiveKit Service
   livekit-service:
@@ -492,11 +492,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
-          cpus: '0.5'
+          memory: 192M
+          cpus: '0.3'
         reservations:
-          memory: 128M
-          cpus: '0.25'
+          memory: 96M
+          cpus: '0.15'
 
   # Frontend
   frontend:
@@ -508,7 +508,7 @@ services:
         - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
         - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
         - NODE_ENV=production
-        - MODE=remote
+        - MODE=mock
     ports:
       - "3000:3000"
     environment:
@@ -528,11 +528,11 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
-          cpus: '0.5'
+          memory: 384M
+          cpus: '0.4'
         reservations:
-          memory: 256M
-          cpus: '0.25'
+          memory: 192M
+          cpus: '0.2'
 
 # Volumes
 volumes:
