@@ -8,11 +8,13 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/gmsas95/blytz-mvp/shared/pkg/auth"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
@@ -104,6 +106,7 @@ type ChatService struct {
 	redis       *redis.Client
 	logger      *zap.Logger
 	upgrader    websocket.Upgrader
+	authClient  *auth.AuthClient
 }
 
 // Optimized WebSocket upgrader with larger buffers
@@ -123,10 +126,10 @@ func NewChatService() *ChatService {
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 
-	// Initialize Redis client
+	// Initialize Redis client with authentication
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     getEnv("REDIS_URL", "localhost:6379"),
-		Password: "",
+		Password: getEnv("REDIS_PASSWORD", ""),
 		DB:       0,
 		PoolSize: 50, // Optimized connection pool
 	})
@@ -172,9 +175,10 @@ func NewChatService() *ChatService {
 				UpdatedAt: time.Now().Add(-30 * time.Minute),
 			},
 		},
-		redis:    rdb,
-		logger:   logger,
-		upgrader: newWebSocketUpgrader(),
+		redis:      rdb,
+		logger:     logger,
+		upgrader:   newWebSocketUpgrader(),
+		authClient:  auth.NewAuthClient(getEnv("AUTH_SERVICE_URL", "http://auth-service:8084")),
 	}
 }
 
@@ -241,15 +245,32 @@ func (s *ChatService) broadcastToChat(chatID string, message []byte) {
 
 // Optimized WebSocket connection handler
 func (s *ChatService) handleWebSocket(c *gin.Context) {
-	userID := c.Query("user_id")
-	if userID == "" {
-		c.JSON(http.StatusBadRequest, Response{
+	// Get token from query parameter (for WebSocket upgrade)
+	token := c.Query("token")
+	if token == "" {
+		c.JSON(http.StatusUnauthorized, Response{
 			Success: false,
-			Message: "User ID is required",
-			Error:   "No user ID provided",
+			Message: "Authentication token is required",
+			Error:   "No token provided",
 		})
 		return
 	}
+
+	// Validate token with auth service
+	userInfo, err := s.authClient.ValidateToken(c.Request.Context(), token)
+	if err != nil {
+		s.logger.Warn("WebSocket authentication failed",
+			zap.String("token", token[:min(len(token), 20)+"..."),
+			zap.Error(err))
+		c.JSON(http.StatusUnauthorized, Response{
+			Success: false,
+			Message: "Invalid authentication token",
+			Error:   "Authentication failed",
+		})
+		return
+	}
+
+	userID := userInfo.ID
 
 	// Upgrade HTTP connection to WebSocket
 	conn, err := s.upgrader.Upgrade(c.Writer, c.Request, nil)
@@ -276,7 +297,10 @@ func (s *ChatService) handleWebSocket(c *gin.Context) {
 	s.connections[userID] = wsConn
 	s.mu.Unlock()
 
-	s.logger.Info("WebSocket connection established", zap.String("user_id", userID))
+	s.logger.Info("WebSocket connection established",
+		zap.String("user_id", userID),
+		zap.String("email", userInfo.Email),
+		zap.String("role", userInfo.Role))
 
 	// Start goroutines for reading and writing
 	go s.writePump(wsConn)
@@ -501,12 +525,23 @@ func (s *ChatService) health(c *gin.Context) {
 
 // Get all chats for user
 func (s *ChatService) getUserChats(c *gin.Context) {
-	userID := c.Query("user_id")
-	if userID == "" {
-		c.JSON(http.StatusBadRequest, Response{
+	// Get user ID from context (set by authentication middleware)
+	userIDValue, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, Response{
 			Success: false,
-			Message: "User ID is required",
-			Error:   "No user ID provided",
+			Message: "Authentication required",
+			Error:   "No user context found",
+		})
+		return
+	}
+
+	userID, ok := userIDValue.(string)
+	if !ok || userID == "" {
+		c.JSON(http.StatusUnauthorized, Response{
+			Success: false,
+			Message: "Invalid user context",
+			Error:   "User ID not found in context",
 		})
 		return
 	}
@@ -758,12 +793,39 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 	r.Use(gin.Recovery())
+	
+	// Secure CORS middleware
 	r.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
+		origin := c.Request.Header.Get("Origin")
+		
+		// Allowed origins for production
+		allowedOrigins := []string{
+			"https://blytz.app",
+			"https://www.blytz.app",
+			"https://seller.blytz.app",
+			"https://demo.blytz.app",
+			"http://localhost:3000",     // Development
+			"http://localhost:3001",     // Development alternative
+		}
+		
+		// Check if origin is allowed
+		allowed := false
+		for _, allowedOrigin := range allowedOrigins {
+			if origin == allowedOrigin {
+				allowed = true
+				break
+			}
+		}
+		
+		if allowed {
+			c.Header("Access-Control-Allow-Origin", origin)
+		}
+		
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization")
 		c.Header("Access-Control-Expose-Headers", "Content-Length")
 		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Header("Access-Control-Max-Age", "86400") // 24 hours
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusNoContent)
@@ -773,10 +835,16 @@ func main() {
 		c.Next()
 	})
 
-	// Routes
+	// Add authentication middleware to protected routes
+	api := r.Group("/api/v1")
+	api.Use(auth.GinAuthMiddleware(s.authClient))
+	{
+		api.GET("/chats", service.getUserChats)
+		api.POST("/messages/send", service.sendMessage)
+	}
+
+	// Public routes
 	r.GET("/health", service.health)
-	r.GET("/api/v1/chats", service.getUserChats)
-	r.POST("/api/v1/messages/send", service.sendMessage)
 	r.GET("/ws", service.handleWebSocket) // WebSocket endpoint
 
 	port := getEnv("PORT", "8090")

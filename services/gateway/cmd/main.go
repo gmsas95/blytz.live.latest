@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
+	"github.com/gmsas95/blytz.live.latest/shared/pkg/auth"
 	"github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
 	"github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
 )
@@ -55,6 +57,7 @@ type Gateway struct {
 	rateLimiter  *RateLimiter
 	logger       *zap.Logger
 	httpClient   *http.Client
+	authClient   *auth.AuthClient
 }
 
 // NewServiceRegistry creates a new service registry
@@ -208,6 +211,7 @@ func NewGateway(logger *zap.Logger) *Gateway {
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+		authClient:   auth.NewAuthClient("http://auth-service:8084"),
 	}
 }
 
@@ -412,64 +416,75 @@ func (g *Gateway) SetupRouter() *gin.Engine {
 	// API routes with service proxies
 	api := router.Group("/api/v1")
 	{
-		// Auth service routes
+		// Auth service routes (public)
 		auth := api.Group("/auth")
 		{
 			auth.Any("/*path", g.ProxyMiddleware("auth-service"))
 		}
 
-		// Product service routes
-		product := api.Group("/products")
+		// Protected routes (require authentication)
+		protected := api.Group("/")
+		protected.Use(auth.GinAuthMiddleware(g.authClient))
 		{
-			product.Any("/*path", g.ProxyMiddleware("product-service"))
-		}
+			// Product service routes
+			product := protected.Group("/products")
+			{
+				product.Any("/*path", g.ProxyMiddleware("product-service"))
+			}
 
-		// Auction service routes
-		auction := api.Group("/auctions")
-		{
-			auction.Any("/*path", g.ProxyMiddleware("auction-service"))
-		}
+			// Auction service routes
+			auction := protected.Group("/auctions")
+			{
+				auction.Any("/*path", g.ProxyMiddleware("auction-service"))
+			}
 
-		// Order service routes
-		order := api.Group("/orders")
-		{
-			order.Any("/*path", g.ProxyMiddleware("order-service"))
-		}
+			// Order service routes
+			order := protected.Group("/orders")
+			{
+				order.Any("/*path", g.ProxyMiddleware("order-service"))
+			}
 
-		// Payment service routes
-		payment := api.Group("/payments")
-		{
-			payment.Any("/*path", g.ProxyMiddleware("payment-service"))
-		}
+			// Payment service routes
+			payment := protected.Group("/payments")
+			{
+				payment.Any("/*path", g.ProxyMiddleware("payment-service"))
+			}
 
-		// Chat service routes
-		chat := api.Group("/chat")
-		{
-			chat.Any("/*path", g.ProxyMiddleware("chat-service"))
-		}
+			// Chat service routes
+			chat := protected.Group("/chat")
+			{
+				chat.Any("/*path", g.ProxyMiddleware("chat-service"))
+			}
 
-		// Logistics service routes
-		logistics := api.Group("/logistics")
-		{
-			logistics.Any("/*path", g.ProxyMiddleware("logistics-service"))
-		}
+			// Logistics service routes
+			logistics := protected.Group("/logistics")
+			{
+				logistics.Any("/*path", g.ProxyMiddleware("logistics-service"))
+			}
 
-		// LiveKit service routes
-		livekit := api.Group("/livekit")
-		{
-			livekit.Any("/*path", g.ProxyMiddleware("livekit-service"))
+			// LiveKit service routes
+			livekit := protected.Group("/livekit")
+			{
+				livekit.Any("/*path", g.ProxyMiddleware("livekit-service"))
+			}
 		}
 	}
 
 	// Legacy routes for backward compatibility
 	router.Any("/auth/*path", g.ProxyMiddleware("auth-service"))
-	router.Any("/products/*path", g.ProxyMiddleware("product-service"))
-	router.Any("/auctions/*path", g.ProxyMiddleware("auction-service"))
-	router.Any("/orders/*path", g.ProxyMiddleware("order-service"))
-	router.Any("/payments/*path", g.ProxyMiddleware("payment-service"))
-	router.Any("/chat/*path", g.ProxyMiddleware("chat-service"))
-	router.Any("/logistics/*path", g.ProxyMiddleware("logistics-service"))
-	router.Any("/livekit/*path", g.ProxyMiddleware("livekit-service"))
+	
+	// Protected legacy routes
+	protectedLegacy := router.Group("/")
+	protectedLegacy.Use(auth.GinAuthMiddleware(g.authClient))
+	{
+		protectedLegacy.Any("/products/*path", g.ProxyMiddleware("product-service"))
+		protectedLegacy.Any("/auctions/*path", g.ProxyMiddleware("auction-service"))
+		protectedLegacy.Any("/orders/*path", g.ProxyMiddleware("order-service"))
+		protectedLegacy.Any("/payments/*path", g.ProxyMiddleware("payment-service"))
+		protectedLegacy.Any("/chat/*path", g.ProxyMiddleware("chat-service"))
+		protectedLegacy.Any("/logistics/*path", g.ProxyMiddleware("logistics-service"))
+		protectedLegacy.Any("/livekit/*path", g.ProxyMiddleware("livekit-service"))
+	}
 
 	return router
 }

@@ -16,6 +16,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"github.com/gmsas95/blytz-mvp/shared/pkg/auth"
 	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/api/handlers"
 	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/config"
 	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/models"
@@ -204,23 +205,27 @@ func setupRouter(auctionHandler *handlers.AuctionHandler, cfg *config.Config, lo
 			auctions.GET("/seller/:seller_id", auctionHandler.GetSellerAuctions)
 		}
 
+		// Initialize auth client
+		authClient := auth.NewAuthClient(cfg.AuthServiceURL)
+
 		// Protected auction routes (require authentication)
 		protected := v1.Group("/auctions")
-		protected.Use(func(c *gin.Context) {
-			// TODO: Add proper authentication middleware
-			// For now, we'll simulate authentication with a mock user ID
-			c.Set("userID", "mock-user-id")
-			c.Next()
-		})
+		protected.Use(auth.GinAuthMiddleware(authClient))
 		{
 			protected.POST("", auctionHandler.CreateAuction)
 			protected.PUT("/:id", auctionHandler.UpdateAuction)
 			protected.DELETE("/:id", auctionHandler.DeleteAuction)
 			protected.POST("/:id/bid", func(c *gin.Context) {
 				auctionID := c.Param("id")
-				bidderID := c.GetString("userID")
-				if bidderID == "" {
+				bidderID, exists := c.Get("userID")
+				if !exists {
 					utils.SendErrorResponse(c, errors.NewAuthenticationError("UNAUTHORIZED", "User not authenticated"))
+					return
+				}
+
+				bidderIDStr, ok := bidderID.(string)
+				if !ok || bidderIDStr == "" {
+					utils.SendErrorResponse(c, errors.NewAuthenticationError("UNAUTHORIZED", "Invalid user context"))
 					return
 				}
 
@@ -230,7 +235,7 @@ func setupRouter(auctionHandler *handlers.AuctionHandler, cfg *config.Config, lo
 					return
 				}
 
-				response, err := auctionHandler.GetAuctionService().PlaceBid(c.Request.Context(), auctionID, bidderID, &req)
+				response, err := auctionHandler.GetAuctionService().PlaceBid(c.Request.Context(), auctionID, bidderIDStr, &req)
 				if err != nil {
 					utils.SendErrorResponse(c, err)
 					return
@@ -243,11 +248,25 @@ func setupRouter(auctionHandler *handlers.AuctionHandler, cfg *config.Config, lo
 			protected.POST("/:id/start", auctionHandler.StartAuction)
 		}
 
-		// Admin routes
+		// Admin routes (require admin role)
 		admin := v1.Group("/admin")
+		admin.Use(auth.GinAuthMiddleware(authClient))
 		admin.Use(func(c *gin.Context) {
-			// TODO: Add admin authentication middleware
-			c.Set("userID", "admin-user-id")
+			// Check if user has admin role
+			userRole, exists := c.Get("userRole")
+			if !exists {
+				utils.SendErrorResponse(c, errors.NewAuthenticationError("UNAUTHORIZED", "User role not found"))
+				c.Abort()
+				return
+			}
+
+			role, ok := userRole.(string)
+			if !ok || role != "admin" {
+				utils.SendErrorResponse(c, errors.NewForbiddenError("FORBIDDEN", "Admin access required"))
+				c.Abort()
+				return
+			}
+
 			c.Next()
 		})
 		{

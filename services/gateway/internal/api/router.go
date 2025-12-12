@@ -71,11 +71,37 @@ func SetupRouter(logger *zap.Logger) *gin.Engine {
 	rateLimiter := NewInMemoryRateLimiter(60) // 60 requests per minute
 	router.Use(rateLimiter.Middleware())
 
-	// CORS middleware
+	// CORS middleware - SECURE CONFIGURATION
 	router.Use(func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
+		origin := c.Request.Header.Get("Origin")
+		
+		// Allowed origins for production
+		allowedOrigins := []string{
+			"https://blytz.app",
+			"https://www.blytz.app",
+			"https://seller.blytz.app",
+			"https://demo.blytz.app",
+			"http://localhost:3000",     // Development
+			"http://localhost:3001",     // Development alternative
+		}
+		
+		// Check if origin is allowed
+		allowed := false
+		for _, allowedOrigin := range allowedOrigins {
+			if origin == allowedOrigin {
+				allowed = true
+				break
+			}
+		}
+		
+		if allowed {
+			c.Header("Access-Control-Allow-Origin", origin)
+		}
+		
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Correlation-ID")
+		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Header("Access-Control-Max-Age", "86400") // 24 hours
 
 		if c.Request.Method == "OPTIONS" {
 			c.Status(http.StatusOK)

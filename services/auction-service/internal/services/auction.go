@@ -30,7 +30,7 @@ func NewAuctionService(repo repository.Repository, logger *zap.Logger, db *gorm.
 
 // CreateAuction creates new auction
 func (s *AuctionService) CreateAuction(ctx context.Context, sellerID string, req *models.CreateAuctionRequest) (*models.Auction, error) {
-	s.logger.Info("🎵 Auction Service: Creating auction", 
+	s.logger.Info("🎵 Auction Service: Creating auction",
 		zap.String("seller_id", sellerID),
 		zap.String("product_id", req.ProductID))
 
@@ -118,7 +118,7 @@ func (s *AuctionService) CreateAuction(ctx context.Context, sellerID string, req
 	// Load relationships
 	auction.Images = images
 
-	s.logger.Info("🎵 Auction Service: Auction created successfully", 
+	s.logger.Info("🎵 Auction Service: Auction created successfully",
 		zap.String("auction_id", auction.AuctionID),
 		zap.String("product_id", auction.ProductID))
 
@@ -161,7 +161,7 @@ func (s *AuctionService) GetAuction(ctx context.Context, auctionID string, userI
 
 // UpdateAuction updates existing auction
 func (s *AuctionService) UpdateAuction(ctx context.Context, auctionID, sellerID string, req *models.UpdateAuctionRequest) (*models.Auction, error) {
-	s.logger.Info("🎵 Auction Service: Updating auction", 
+	s.logger.Info("🎵 Auction Service: Updating auction",
 		zap.String("auction_id", auctionID),
 		zap.String("seller_id", sellerID))
 
@@ -257,7 +257,7 @@ func (s *AuctionService) UpdateAuction(ctx context.Context, auctionID, sellerID 
 
 // DeleteAuction deletes auction
 func (s *AuctionService) DeleteAuction(ctx context.Context, auctionID, sellerID string) error {
-	s.logger.Info("🎵 Auction Service: Deleting auction", 
+	s.logger.Info("🎵 Auction Service: Deleting auction",
 		zap.String("auction_id", auctionID),
 		zap.String("seller_id", sellerID))
 
@@ -326,7 +326,7 @@ func (s *AuctionService) SearchAuctions(ctx context.Context, req *models.SearchA
 
 	// Apply filters
 	if req.Query != "" {
-		query = query.Where("title ILIKE ? OR description ILIKE ?", 
+		query = query.Where("title ILIKE ? OR description ILIKE ?",
 			"%"+req.Query+"%", "%"+req.Query+"%")
 	}
 	if req.Category != "" {
@@ -361,7 +361,7 @@ func (s *AuctionService) SearchAuctions(ctx context.Context, req *models.SearchA
 	}
 	if req.EndingSoon {
 		// Ending in next 24 hours
-		query = query.Where("status = ? AND end_time <= NOW() + INTERVAL '24 hours' AND end_time > NOW()", 
+		query = query.Where("status = ? AND end_time <= NOW() + INTERVAL '24 hours' AND end_time > NOW()",
 			models.AuctionStatusActive)
 	}
 
@@ -420,7 +420,7 @@ func (s *AuctionService) SearchAuctions(ctx context.Context, req *models.SearchA
 		HasNext:    hasNext,
 	}
 
-	s.logger.Info("🎵 Auction Service: Auctions searched successfully", 
+	s.logger.Info("🎵 Auction Service: Auctions searched successfully",
 		zap.Int64("total", total),
 		zap.Int("count", len(auctions)))
 
@@ -467,7 +467,7 @@ func (s *AuctionService) GetSellerAuctions(ctx context.Context, sellerID string,
 		HasNext:    hasNext,
 	}
 
-	s.logger.Info("🎵 Auction Service: Seller auctions retrieved successfully", 
+	s.logger.Info("🎵 Auction Service: Seller auctions retrieved successfully",
 		zap.String("seller_id", sellerID),
 		zap.Int64("total", total))
 
@@ -478,7 +478,7 @@ func (s *AuctionService) GetSellerAuctions(ctx context.Context, sellerID string,
 
 // PlaceBid places a bid on an auction
 func (s *AuctionService) PlaceBid(ctx context.Context, auctionID, bidderID string, req *models.PlaceBidRequest) (*models.BidResponse, error) {
-	s.logger.Info("🎵 Auction Service: Placing bid", 
+	s.logger.Info("🎵 Auction Service: Placing bid",
 		zap.String("auction_id", auctionID),
 		zap.String("bidder_id", bidderID),
 		zap.Float64("amount", req.Amount))
@@ -520,14 +520,14 @@ func (s *AuctionService) PlaceBid(ctx context.Context, auctionID, bidderID strin
 
 		// Create bid
 		bid := &models.Bid{
-			AuctionID: auctionID,
-			BidderID:  bidderID,
+			AuctionID:  auctionID,
+			BidderID:   bidderID,
 			BidderName: "Bidder Name", // Would get from user service
-			Amount:    req.Amount,
-			IsWinning: true,
-			IsAutoBid: false,
-			BidTime:   time.Now(),
-			IPAddress: "127.0.0.1", // Would get from request context
+			Amount:     req.Amount,
+			IsWinning:  true,
+			IsAutoBid:  false,
+			BidTime:    time.Now(),
+			IPAddress:  "127.0.0.1", // Would get from request context
 			UserAgent:  "Auction Service",
 		}
 
@@ -584,14 +584,14 @@ func (s *AuctionService) PlaceBid(ctx context.Context, auctionID, bidderID strin
 	}
 
 	response := &models.BidResponse{
-		Bid:         *bid,
-		IsOutbid:    false,
-		NewHighBid:  auction.CurrentPrice,
-		MinNextBid:  auction.GetMinNextBid(),
+		Bid:           *bid,
+		IsOutbid:      false,
+		NewHighBid:    auction.CurrentPrice,
+		MinNextBid:    auction.GetMinNextBid(),
 		TimeRemaining: auction.GetTimeRemaining(),
 	}
 
-	s.logger.Info("🎵 Auction Service: Bid placed successfully", 
+	s.logger.Info("🎵 Auction Service: Bid placed successfully",
 		zap.String("auction_id", auctionID),
 		zap.String("bid_id", bid.BidID),
 		zap.Float64("amount", req.Amount))
@@ -637,7 +637,7 @@ func (s *AuctionService) GetAuctionBids(ctx context.Context, auctionID string, p
 		HasNext: hasNext,
 	}
 
-	s.logger.Info("🎵 Auction Service: Auction bids retrieved successfully", 
+	s.logger.Info("🎵 Auction Service: Auction bids retrieved successfully",
 		zap.String("auction_id", auctionID),
 		zap.Int64("total", total))
 
@@ -748,13 +748,13 @@ func (s *AuctionService) EndAuction(ctx context.Context, auctionID string) error
 	// TODO: Create order for winner if reserve price was met
 	if endReason == "sold" {
 		// This would integrate with Order Service
-		s.logger.Info("🎵 Auction Service: Auction ended with winner", 
+		s.logger.Info("🎵 Auction Service: Auction ended with winner",
 			zap.String("auction_id", auctionID),
 			zap.String("winner_user_id", winnerUserID),
 			zap.Float64("final_price", finalPrice))
 	}
 
-	s.logger.Info("🎵 Auction Service: Auction ended successfully", 
+	s.logger.Info("🎵 Auction Service: Auction ended successfully",
 		zap.String("auction_id", auctionID),
 		zap.String("end_reason", endReason))
 
@@ -765,17 +765,15 @@ func (s *AuctionService) EndAuction(ctx context.Context, auctionID string) error
 
 // validateCreateAuctionRequest validates auction creation request
 func (s *AuctionService) validateCreateAuctionRequest(req *models.CreateAuctionRequest) error {
-	if req.StartingPrice < 0 {
-		return fmt.Errorf("starting price cannot be negative")
+	// Price validations
+	if req.StartingPrice < 0.01 {
+		return fmt.Errorf("starting price must be at least $0.01")
 	}
 	if req.MinBidIncrement <= 0 {
 		return fmt.Errorf("minimum bid increment must be positive")
 	}
-	if req.StartTime.After(req.EndTime) {
-		return fmt.Errorf("start time must be before end time")
-	}
-	if req.StartTime.Before(time.Now()) {
-		return fmt.Errorf("start time cannot be in the past")
+	if req.MinBidIncrement > req.StartingPrice {
+		return fmt.Errorf("minimum bid increment cannot exceed starting price")
 	}
 	if req.BuyItNowPrice > 0 && req.BuyItNowPrice <= req.StartingPrice {
 		return fmt.Errorf("buy it now price must be greater than starting price")
@@ -783,6 +781,39 @@ func (s *AuctionService) validateCreateAuctionRequest(req *models.CreateAuctionR
 	if req.ReservePrice > 0 && req.ReservePrice <= req.StartingPrice {
 		return fmt.Errorf("reserve price must be greater than starting price")
 	}
+	if req.BuyItNowPrice > 0 && req.ReservePrice > 0 && req.BuyItNowPrice < req.ReservePrice {
+		return fmt.Errorf("buy it now price must be at least equal to reserve price")
+	}
+
+	// Time validations
+	now := time.Now()
+	if req.StartTime.Before(now) {
+		return fmt.Errorf("start time cannot be in the past")
+	}
+	if req.StartTime.After(req.EndTime) {
+		return fmt.Errorf("start time must be before end time")
+	}
+
+	// Duration validations
+	duration := req.EndTime.Sub(req.StartTime)
+	minDuration := 1 * time.Hour
+	maxDuration := 30 * 24 * time.Hour // 30 days
+
+	if duration < minDuration {
+		return fmt.Errorf("auction duration must be at least 1 hour")
+	}
+	if duration > maxDuration {
+		return fmt.Errorf("auction duration cannot exceed 30 days")
+	}
+
+	// Title validation
+	if len(req.Title) < 3 {
+		return fmt.Errorf("auction title must be at least 3 characters")
+	}
+	if len(req.Title) > 200 {
+		return fmt.Errorf("auction title cannot exceed 200 characters")
+	}
+
 	return nil
 }
 
@@ -813,15 +844,15 @@ func (s *AuctionService) handleAutoBid(tx *gorm.DB, auction *models.Auction, bid
 
 	// Create bid
 	bid := &models.Bid{
-		AuctionID: auction.AuctionID,
-		BidderID:  bidderID,
+		AuctionID:  auction.AuctionID,
+		BidderID:   bidderID,
 		BidderName: "Auto Bidder",
-		Amount:    bidAmount,
-		IsWinning: true,
-		IsAutoBid: true,
+		Amount:     bidAmount,
+		IsWinning:  true,
+		IsAutoBid:  true,
 		MaxAutoBid: req.MaxAutoBid,
-		BidTime:   time.Now(),
-		IPAddress: "127.0.0.1",
+		BidTime:    time.Now(),
+		IPAddress:  "127.0.0.1",
 		UserAgent:  "Auto Bid Service",
 	}
 

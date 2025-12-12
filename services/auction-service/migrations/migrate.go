@@ -18,10 +18,10 @@ func main() {
 
 	action := os.Args[1]
 
-	// Database connection
+	// Database connection - require DATABASE_URL environment variable
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
-		dbURL = "postgres://blytz:blytz_password_2025@localhost:5432/blytz_mvp?sslmode=disable"
+		log.Fatal("DATABASE_URL environment variable is required for migrations")
 	}
 
 	db, err := sql.Open("pgx", dbURL)

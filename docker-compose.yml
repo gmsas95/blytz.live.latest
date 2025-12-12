@@ -22,9 +22,9 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru --maxclients 10000
+    command: redis-server --requirepass ${REDIS_PASSWORD:-your_secure_redis_password_here_32_characters_minimum} --maxmemory 512mb --maxmemory-policy allkeys-lru --maxclients 10000
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-your_secure_redis_password_here_32_characters_minimum}", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -45,8 +45,9 @@ services:
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db?sslmode=disable&max_conns=50&max_idle_conns=25
       - REDIS_URL=redis://redis:6379
-      - JWT_SECRET=your-secret-key
-      - BETTER_AUTH_SECRET=your-better-auth-secret
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-your_secure_redis_password_here_32_characters_minimum}
+      - JWT_SECRET=${JWT_SECRET:-your_super_secure_256_bit_jwt_secret_key_for_production_only_32_bytes_plus}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-your_super_secure_256_bit_better_auth_secret_key_for_production_only_32_bytes_plus}
       - ENVIRONMENT=production
       - LOG_LEVEL=info
       - PORT=8085
@@ -106,6 +107,8 @@ services:
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db?sslmode=disable&max_conns=50&max_idle_conns=25
       - REDIS_URL=redis://redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-your_secure_redis_password_here_32_characters_minimum}
+      - JWT_SECRET=${JWT_SECRET:-your_super_secure_256_bit_jwt_secret_key_for_production_only_32_bytes_plus}
       - ENVIRONMENT=production
       - LOG_LEVEL=info
       - PORT=8087
@@ -191,6 +194,7 @@ services:
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db?sslmode=disable&max_conns=50&max_idle_conns=25
       - REDIS_URL=redis://redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-your_secure_redis_password_here_32_characters_minimum}
       - ENVIRONMENT=production
       - LOG_LEVEL=info
       - PORT=8090
@@ -255,6 +259,7 @@ services:
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db?sslmode=disable&max_conns=50&max_idle_conns=25
       - REDIS_URL=redis://redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-your_secure_redis_password_here_32_characters_minimum}
       - ENVIRONMENT=production
       - LOG_LEVEL=info
       - PORT=8095
@@ -294,6 +299,7 @@ services:
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db?sslmode=disable&max_conns=50&max_idle_conns=25
       - REDIS_URL=redis://redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-your_secure_redis_password_here_32_characters_minimum}
       - ENVIRONMENT=production
       - LOG_LEVEL=info
       - PORT=8094

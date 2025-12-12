@@ -3,21 +3,29 @@ package handlers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/middleware"
 	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/models"
 	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/services"
-	"github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
 	shared_errors "github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
+	"github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
 )
 
 type AuthHandler struct {
-	authService *services.AuthService
+	authService    *services.AuthService
+	accountLockout *middleware.AccountLockout
 }
 
 func NewAuthHandler(authService *services.AuthService) *AuthHandler {
 	return &AuthHandler{authService: authService}
+}
+
+// SetAccountLockout sets the account lockout mechanism
+func (h *AuthHandler) SetAccountLockout(lockout *middleware.AccountLockout) {
+	h.accountLockout = lockout
 }
 
 func (h *AuthHandler) Register(c *gin.Context) {
@@ -46,10 +54,46 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	// Check if account is locked
+	if h.accountLockout != nil && h.accountLockout.IsLocked(loginDetails.Email) {
+		remaining := h.accountLockout.RemainingLockoutTime(loginDetails.Email)
+		utils.SendErrorResponse(c, shared_errors.NewAuthenticationError(
+			"ACCOUNT_LOCKED",
+			fmt.Sprintf("Account is temporarily locked. Try again in %d minutes.", int(remaining.Minutes())+1),
+		))
+		return
+	}
+
 	token, err := h.authService.LoginUser(loginDetails.Email, loginDetails.Password)
 	if err != nil {
+		// Record failed attempt
+		if h.accountLockout != nil {
+			if h.accountLockout.RecordFailedAttempt(loginDetails.Email) {
+				// Account just got locked
+				utils.SendErrorResponse(c, shared_errors.NewAuthenticationError(
+					"ACCOUNT_LOCKED",
+					"Too many failed login attempts. Account is temporarily locked for 15 minutes.",
+				))
+				return
+			}
+			// Warn user about remaining attempts
+			attempts := h.accountLockout.GetFailedAttempts(loginDetails.Email)
+			remaining := 5 - attempts
+			if remaining <= 2 && remaining > 0 {
+				utils.SendErrorResponse(c, shared_errors.NewAuthenticationError(
+					"INVALID_CREDENTIALS",
+					fmt.Sprintf("Invalid email or password. %d attempts remaining before lockout.", remaining),
+				))
+				return
+			}
+		}
 		utils.SendErrorResponse(c, err)
 		return
+	}
+
+	// Clear failed attempts on successful login
+	if h.accountLockout != nil {
+		h.accountLockout.RecordSuccessfulLogin(loginDetails.Email)
 	}
 
 	utils.SendSuccessResponse(c, http.StatusOK, gin.H{"token": token})
@@ -63,10 +107,10 @@ func (h *AuthHandler) SignUp(c *gin.Context) {
 	}
 
 	user := &models.User{
-		Email:         req.Email,
-		PasswordHash:  req.Password, // Will be hashed in service
-		DisplayName:   req.DisplayName,
-		PhoneNumber:   req.PhoneNumber,
+		Email:        req.Email,
+		PasswordHash: req.Password, // Will be hashed in service
+		DisplayName:  req.DisplayName,
+		PhoneNumber:  req.PhoneNumber,
 	}
 
 	if err := h.authService.RegisterUser(user); err != nil {

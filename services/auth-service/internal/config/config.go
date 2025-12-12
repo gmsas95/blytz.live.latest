@@ -18,6 +18,7 @@ type Config struct {
 	PostgresDB       string `env:"POSTGRES_DB"`
 	BetterAuthSecret string `env:"BETTER_AUTH_SECRET"`
 	JWTSecret        string `env:"JWT_SECRET"`
+	RedisURL         string `env:"REDIS_URL"`
 	ServicePort      string `env:"PORT"`
 	Environment      string `env:"ENVIRONMENT"`
 }
@@ -33,10 +34,29 @@ func Load() (*Config, error) {
 		PostgresHost:     getEnvOrDefault("POSTGRES_HOST", "postgres"),
 		PostgresPort:     getEnvOrDefault("POSTGRES_PORT", "5432"),
 		PostgresDB:       getEnvOrDefault("POSTGRES_DB", "blytz_prod"),
-		BetterAuthSecret: getEnvOrDefault("BETTER_AUTH_SECRET", "better-auth-secret-key-change-in-production"),
-		JWTSecret:        getEnvOrDefault("JWT_SECRET", "jwt-secret-key-change-in-production"),
+		BetterAuthSecret: os.Getenv("BETTER_AUTH_SECRET"),
+		JWTSecret:        os.Getenv("JWT_SECRET"),
+		RedisURL:         getEnvOrDefault("REDIS_URL", "redis://localhost:6379"),
 		ServicePort:      getEnvOrDefault("PORT", "8084"),
 		Environment:      getEnvOrDefault("NODE_ENV", "development"),
+	}
+
+	// Validate required secrets in production
+	if cfg.IsProduction() {
+		if cfg.JWTSecret == "" {
+			return nil, fmt.Errorf("JWT_SECRET environment variable is required in production")
+		}
+		if cfg.BetterAuthSecret == "" {
+			return nil, fmt.Errorf("BETTER_AUTH_SECRET environment variable is required in production")
+		}
+	} else {
+		// Development-only fallbacks (clearly marked as unsafe)
+		if cfg.JWTSecret == "" {
+			cfg.JWTSecret = "UNSAFE-DEV-ONLY-jwt-secret-do-not-use-in-production"
+		}
+		if cfg.BetterAuthSecret == "" {
+			cfg.BetterAuthSecret = "UNSAFE-DEV-ONLY-auth-secret-do-not-use-in-production"
+		}
 	}
 
 	// Check if DATABASE_URL is provided (Dokploy style)

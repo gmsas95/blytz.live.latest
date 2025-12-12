@@ -13,11 +13,13 @@ import (
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 
-	shared_utils "github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
-	shared_metrics "github.com/gmsas95/blytz.live.latest/shared/pkg/metrics"
 	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/api/handlers"
+	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/config"
 	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/middleware"
 	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/services"
+	shared_metrics "github.com/gmsas95/blytz.live.latest/shared/pkg/metrics"
+	"github.com/gmsas95/blytz.live.latest/shared/pkg/ratelimiter"
+	shared_utils "github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
 )
 
 func main() {
@@ -33,13 +35,14 @@ func main() {
 	}
 	defer logger.Sync()
 
-	// Database connection
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		dbURL = "postgres://blytz:blytz_password_2025@localhost:5432/blytz_mvp?sslmode=disable"
+	// Load configuration (validates secrets in production)
+	cfg, err := config.Load()
+	if err != nil {
+		logger.Fatal("Failed to load configuration", zap.Error(err))
 	}
 
-	db, err := sql.Open("pgx", dbURL)
+	// Database connection
+	db, err := sql.Open("pgx", cfg.DatabaseURL)
 	if err != nil {
 		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}
@@ -50,29 +53,58 @@ func main() {
 		logger.Fatal("Failed to ping database", zap.Error(err))
 	}
 
-	logger.Info("Database connected successfully")
+	logger.Info("Database connected successfully",
+		zap.String("host", cfg.PostgresHost),
+		zap.String("database", cfg.PostgresDB))
 
 	// Initialize services
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		jwtSecret = "your-super-secret-jwt-key-change-in-production"
-	}
-
-	authService := services.NewAuthService(db, jwtSecret, logger)
+	authService := services.NewAuthService(db, cfg.JWTSecret, logger)
 
 	// Initialize handlers and middleware
 	authHandler := handlers.NewAuthHandler(authService)
 	authMiddleware := middleware.AuthMiddleware(authService)
+
+	// Initialize account lockout (5 failed attempts = 15 min lockout)
+	accountLockout := middleware.DefaultAccountLockout(logger)
+	authHandler.SetAccountLockout(accountLockout)
+
+	// Initialize rate limiters
+	// General API rate limiter: 100 requests per minute
+	apiRateLimiter, err := ratelimiter.NewRedisRateLimiter(ratelimiter.Config{
+		RequestsPerSecond: 100.0 / 60.0, // ~1.67 rps
+		BurstSize:         100,
+		RedisURL:          cfg.RedisURL,
+		WindowDuration:    time.Minute,
+		Logger:            logger,
+	})
+	if err != nil {
+		logger.Warn("Failed to create API rate limiter, using local fallback", zap.Error(err))
+	}
+
+	// Auth endpoint rate limiter: 10 requests per minute (stricter)
+	authRateLimiter, err := ratelimiter.NewRedisRateLimiter(ratelimiter.Config{
+		RequestsPerSecond: 10.0 / 60.0, // ~0.16 rps
+		BurstSize:         10,
+		RedisURL:          cfg.RedisURL,
+		WindowDuration:    time.Minute,
+		Logger:            logger,
+	})
+	if err != nil {
+		logger.Warn("Failed to create Auth rate limiter, using local fallback", zap.Error(err))
+	}
 
 	// Setup Gin router
 	router := gin.Default()
 
 	// CORS middleware using shared package
 	router.Use(shared_utils.CORSMiddleware())
-	
+
 	// Metrics middleware
 	router.Use(shared_metrics.MetricsMiddleware("auth-service"))
-	
+
+	// General API rate limiting (100 req/min)
+	router.Use(apiRateLimiter.GinMiddleware(ratelimiter.DefaultKeyExtractor))
+
 	// Metrics endpoint
 	router.GET("/metrics", shared_metrics.PrometheusHandler())
 
@@ -80,7 +112,7 @@ func main() {
 	router.GET("/health", func(c *gin.Context) {
 		shared_utils.SendSuccessResponse(c, http.StatusOK, map[string]interface{}{
 			"service":  "auth-service",
-			"version":  "v2.0-database",
+			"version":  "v2.1-security",
 			"status":   "healthy",
 			"database": "connected",
 			"time":     time.Now(),
@@ -90,8 +122,9 @@ func main() {
 	// API routes
 	v1 := router.Group("/api/v1")
 	{
-		// Authentication routes (public)
+		// Authentication routes (public) - stricter rate limiting
 		auth := v1.Group("/auth")
+		auth.Use(authRateLimiter.GinMiddleware(ratelimiter.DefaultKeyExtractor))
 		{
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
@@ -124,7 +157,7 @@ func main() {
 	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8085"  // Updated to use consistent port 8085 as per docker-compose.yml
+		port = "8085" // Updated to use consistent port 8085 as per docker-compose.yml
 	}
 
 	// Set build info and start time
