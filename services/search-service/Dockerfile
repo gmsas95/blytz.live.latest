@@ -10,7 +10,7 @@ RUN apk add --no-cache git ca-certificates tzdata
 COPY . .
 
 # Build the application
-RUN cd services/search-service && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o search-service .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o search-service .
 
 # Final stage
 FROM alpine:latest
@@ -26,7 +26,7 @@ RUN addgroup -g 1001 -S appuser && \
 WORKDIR /root/
 
 # Copy the binary from builder stage
-COPY --from=builder /app/services/search-service/search-service .
+COPY --from=builder /app/search-service .
 
 # Change ownership to non-root user
 RUN chown appuser:appuser search-service
