@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 # Build the application
-RUN cd services/livekit-service && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/main.go
+RUN cd services/livekit-service && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 
 # Final stage
 FROM alpine:latest

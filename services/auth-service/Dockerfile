@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 # Build the application
-RUN cd services/auth-service && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o auth-service ./cmd/main.go
+RUN cd services/auth-service && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o auth-service .
 
 # Final stage
 FROM alpine:latest

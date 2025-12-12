@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 # Build the application
-RUN cd services/auth-service && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o auth-service ./cmd/main.go
+RUN cd services/payment-service && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o payment-service .
 
 # Final stage
 FROM alpine:latest
@@ -23,20 +23,20 @@ RUN addgroup -g 1001 -S appuser && \
 WORKDIR /root/
 
 # Copy the binary from builder stage
-COPY --from=builder /app/services/auth-service/auth-service .
+COPY --from=builder /app/services/payment-service/payment-service .
 
 # Change ownership to non-root user
-RUN chown appuser:appuser auth-service
+RUN chown appuser:appuser payment-service
 
 # Switch to non-root user
 USER appuser
 
 # Expose port
-EXPOSE 8084
+EXPOSE 8089
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8084/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8089/health || exit 1
 
 # Run the application
-CMD ["./auth-service"]
+CMD ["./payment-service"]

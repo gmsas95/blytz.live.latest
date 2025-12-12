@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 # Build the application
-RUN cd services/order-service && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o order-service ./cmd/main.go
+RUN cd services/order-service && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o order-service .
 
 # Final stage
 FROM alpine:latest

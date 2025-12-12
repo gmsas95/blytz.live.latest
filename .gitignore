@@ -32,7 +32,7 @@ vendor/
 /logistics-service
 /gateway
 /main
-services/*/main
+# services/*/main - REMOVED to allow main.go files for deployment
 services/*/*-service
 services/*/bin/
 services/*/build/

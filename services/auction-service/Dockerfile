@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 # Build the application
-RUN cd services/auction-service && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o auction-service ./cmd/main.go
+RUN cd services/auction-service && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o auction-service .
 
 # Final stage
 FROM alpine:latest
