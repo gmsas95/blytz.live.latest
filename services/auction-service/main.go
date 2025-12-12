@@ -2,12 +2,15 @@ package main
 
 import (
 	"log"
+	"database/sql"
 
 	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/api"
 	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/config"
 	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/repository"
 	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/services"
 	"go.uber.org/zap"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -16,21 +19,29 @@ func main() {
 	defer logger.Sync()
 
 	// Load configuration
-	cfg := config.LoadConfig()
+	cfg, err := config.Load()
+	if err != nil {
+		logger.Fatal("Failed to load configuration", zap.Error(err))
+	}
 	logger.Info("Starting auction service", zap.String("port", cfg.Port))
 
 	// Initialize database connection
-	db, err := config.InitDB(cfg)
+	// Initialize database connection
+	db, err := gorm.Open(postgres.Open(cfg.DatabaseURL), &gorm.Config{})
 	if err != nil {
-		logger.Fatal("Failed to initialize database", zap.Error(err))
+		logger.Fatal("Failed to connect to database", zap.Error(err))
 	}
 
-	// Initialize repositories
-	auctionRepo := repository.NewAuctionRepository(db, logger)
-	bidRepo := repository.NewBidRepository(db, logger)
+	// Get underlying SQL DB for repository
+	sqlDB, err := db.DB()
+	if err != nil {
+		logger.Fatal("Failed to get underlying SQL DB", zap.Error(err))
+	}
+
+	auctionRepo := repository.NewPostgresRepo(sqlDB, logger)
 
 	// Initialize services
-	auctionService := services.NewAuctionService(auctionRepo, bidRepo, logger, cfg)
+	auctionService := services.NewAuctionService(auctionRepo, logger, db)
 
 	// Setup router
 	router := api.SetupRouter(auctionService, logger, cfg)

@@ -1,3 +1,4 @@
+const path = require('path');
 const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
 });
@@ -91,6 +92,12 @@ const nextConfig = {
     ],
   },
   webpack: (config, { isServer, dev }) => {
+    // Fix path resolution for @ aliases
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': path.resolve(__dirname, 'src'),
+    };
+
     // Only optimize in production
     if (!dev) {
       config.optimization.splitChunks = {
