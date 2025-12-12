@@ -17,7 +17,6 @@ import (
 	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/config"
 	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/middleware"
 	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/services"
-	shared_metrics "github.com/gmsas95/blytz-mvp/shared/pkg/metrics"
 	"github.com/gmsas95/blytz-mvp/shared/pkg/ratelimiter"
 	shared_utils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
 )
@@ -99,14 +98,14 @@ func main() {
 	// CORS middleware using shared package
 	router.Use(shared_utils.CORSMiddleware())
 
-	// Metrics middleware
-	router.Use(shared_metrics.MetricsMiddleware("auth-service"))
+	// Metrics middleware (commented out - shared metrics package not available)
+	// router.Use(shared_metrics.MetricsMiddleware("auth-service"))
 
 	// General API rate limiting (100 req/min)
 	router.Use(apiRateLimiter.GinMiddleware(ratelimiter.DefaultKeyExtractor))
 
-	// Metrics endpoint
-	router.GET("/metrics", shared_metrics.PrometheusHandler())
+	// Metrics endpoint (commented out - shared metrics package not available)
+	// router.GET("/metrics", shared_metrics.PrometheusHandler())
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
@@ -160,9 +159,9 @@ func main() {
 		port = "8085" // Updated to use consistent port 8085 as per docker-compose.yml
 	}
 
-	// Set build info and start time
-	shared_metrics.SetBuildInfo("v2.0-database", "unknown", time.Now().Format(time.RFC3339))
-	shared_metrics.SetStartTime(float64(time.Now().Unix()))
+	// Set build info and start time (commented out - shared metrics package not available)
+	// shared_metrics.SetBuildInfo("v2.0-database", "unknown", time.Now().Format(time.RFC3339))
+	// shared_metrics.SetStartTime(float64(time.Now().Unix()))
 
 	logger.Info("Auth Service starting",
 		zap.String("port", port),
