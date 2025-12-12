@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 # Build the application
-RUN cd services/product-service && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o product-service .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o product-service .
 
 # Final stage
 FROM alpine:latest
@@ -17,7 +17,7 @@ RUN apk --no-cache add ca-certificates curl
 WORKDIR /root/
 
 # Copy the binary from builder
-COPY --from=builder /app/services/product-service/product-service .
+COPY --from=builder /app/product-service .
 
 # Expose port
 EXPOSE 8082

@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 # Build the application
-RUN cd services/chat-service && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o chat-service .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o chat-service .
 
 # Final stage
 FROM alpine:latest
@@ -17,7 +17,7 @@ RUN apk --no-cache add ca-certificates curl
 WORKDIR /root/
 
 # Copy the binary from builder
-COPY --from=builder /app/services/chat-service/chat-service .
+COPY --from=builder /app/chat-service .
 
 # Expose port
 EXPOSE 8088

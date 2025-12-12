@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 # Build the application
-RUN cd services/auction-service && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o auction-service .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o auction-service .
 
 # Final stage
 FROM alpine:latest
@@ -17,7 +17,7 @@ RUN apk --no-cache add ca-certificates curl
 WORKDIR /root/
 
 # Copy the binary from builder
-COPY --from=builder /app/services/auction-service/auction-service .
+COPY --from=builder /app/auction-service .
 
 # Expose port
 EXPOSE 8083

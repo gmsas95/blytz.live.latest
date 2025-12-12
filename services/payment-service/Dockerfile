@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 # Build the application
-RUN cd services/payment-service && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o payment-service .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o payment-service .
 
 # Final stage
 FROM alpine:latest
@@ -23,7 +23,7 @@ RUN addgroup -g 1001 -S appuser && \
 WORKDIR /root/
 
 # Copy the binary from builder stage
-COPY --from=builder /app/services/payment-service/payment-service .
+COPY --from=builder /app/payment-service .
 
 # Change ownership to non-root user
 RUN chown appuser:appuser payment-service

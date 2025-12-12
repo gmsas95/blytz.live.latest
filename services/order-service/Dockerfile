@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 # Build the application
-RUN cd services/order-service && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o order-service .
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o order-service .
 
 # Final stage
 FROM alpine:latest
@@ -17,7 +17,7 @@ RUN apk --no-cache add ca-certificates curl
 WORKDIR /root/
 
 # Copy the binary from builder
-COPY --from=builder /app/services/order-service/order-service .
+COPY --from=builder /app/order-service .
 
 # Expose port
 EXPOSE 8085
