@@ -52,7 +52,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/gmsas95/blytz-mvp/shared => ../../shared
+replace github.com/gmsas95/blytz-mvp/shared => ./shared
 
 replace github.com/modern-go/concurrent => github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 

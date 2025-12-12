@@ -57,4 +57,4 @@ require (
 	gorm.io/driver/postgres v1.6.0 // indirect
 )
 
-replace github.com/gmsas95/blytz-mvp/shared => ../../shared
+replace github.com/gmsas95/blytz-mvp/shared => ./shared

@@ -12,7 +12,7 @@ require (
 
 replace github.com/jinhu1992/inflection => github.com/jinzhu/inflection v1.0.0
 
-replace github.com/gmsas95/blytz-mvp/shared => ../../shared
+replace github.com/gmsas95/blytz-mvp/shared => ./shared
 
 require (
 	github.com/bytedance/sonic v1.11.6 // indirect

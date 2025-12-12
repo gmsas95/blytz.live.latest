@@ -16,7 +16,7 @@ require (
 	gorm.io/gorm v1.31.1
 )
 
-replace github.com/gmsas95/blytz-mvp/shared => ../../shared
+replace github.com/gmsas95/blytz-mvp/shared => ./shared
 
 require (
 	github.com/bytedance/sonic v1.11.6 // indirect
