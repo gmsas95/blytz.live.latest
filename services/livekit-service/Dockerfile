@@ -7,7 +7,7 @@ WORKDIR /app
 COPY services/livekit-service/go.mod services/livekit-service/go.sum ./
 
 # Copy shared package
-COPY shared/ ./shared/
+COPY ./shared/ ./shared/
 
 # Copy service source code
 COPY services/livekit-service/ ./

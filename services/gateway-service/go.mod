@@ -6,6 +6,7 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/google/uuid v1.6.0
 	go.uber.org/zap v1.27.0
+	github.com/gmsas95/blytz-mvp/shared v0.0.0-00010101000000-000000000000
 )
 
 replace github.com/gmsas95/blytz-mvp/shared => ./shared

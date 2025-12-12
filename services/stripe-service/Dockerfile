@@ -7,7 +7,7 @@ WORKDIR /app
 COPY services/stripe-service/go.mod services/stripe-service/go.sum ./
 
 # Copy shared package
-COPY shared/ ./shared/
+COPY ./shared/ ./shared/
 
 # Copy service source code
 COPY services/stripe-service/ ./

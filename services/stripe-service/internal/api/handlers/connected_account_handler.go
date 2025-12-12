@@ -37,11 +37,7 @@ func (h *ConnectedAccountHandler) CreateConnectedAccount(c *gin.Context) {
 	// Get user ID from context (set by auth middleware)
 	userID, exists := c.Get("userID")
 	if !exists {
-		utils.SendErrorResponse(c, &errors.AppError{
-			Type:    errors.AuthenticationError,
-			Code:    "UNAUTHORIZED",
-			Message: "User not authenticated",
-		})
+		utils.SendErrorResponse(c, errors.NewAuthenticationError("UNAUTHORIZED", "User not authenticated"))
 		return
 	}
 
@@ -50,11 +46,7 @@ func (h *ConnectedAccountHandler) CreateConnectedAccount(c *gin.Context) {
 		req.UserID = userID.(string)
 	} else if req.UserID != userID.(string) {
 		// User can only create account for themselves
-		utils.SendErrorResponse(c, &errors.AppError{
-			Type:    errors.AuthorizationError,
-			Code:    "FORBIDDEN",
-			Message: "Cannot create account for another user",
-		})
+		utils.SendErrorResponse(c, errors.NewAuthorizationError("FORBIDDEN", "Cannot create account for another user"))
 		return
 	}
 

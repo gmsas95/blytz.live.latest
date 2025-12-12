@@ -7,7 +7,7 @@ WORKDIR /app
 COPY services/auction-service/go.mod services/auction-service/go.sum ./
 
 # Copy shared package
-COPY shared/ ./shared/
+COPY ./shared/ ./shared/
 
 # Copy service source code
 COPY services/auction-service/ ./

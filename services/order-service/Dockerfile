@@ -7,7 +7,7 @@ WORKDIR /app
 COPY services/order-service/go.mod services/order-service/go.sum ./
 
 # Copy shared package
-COPY shared/ ./shared/
+COPY ./shared/ ./shared/
 
 # Copy service source code
 COPY services/order-service/ ./
