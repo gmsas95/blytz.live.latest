@@ -10,7 +10,7 @@ COPY services/logistics-service/go.mod services/logistics-service/go.sum ./
 COPY services/logistics-service/ ./
 
 # Copy shared package to correct location for replace directive
-COPY ../shared/ ../shared/
+COPY ./shared/ ./shared/
 
 # Download dependencies
 RUN go mod download
