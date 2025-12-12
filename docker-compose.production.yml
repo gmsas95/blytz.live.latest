@@ -4,7 +4,6 @@
 # This file is optimized for CI/CD deployment
 # ===========================================
 
-version: '3.8'
 
 services:
   # Database Services
