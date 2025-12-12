@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/models"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/models"
 	"gorm.io/gorm"
 )
 

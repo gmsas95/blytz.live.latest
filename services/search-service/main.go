@@ -13,13 +13,13 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
-	shared_utils "github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
-	shared_metrics "github.com/gmsas95/blytz.live.latest/shared/pkg/metrics"
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/api/handlers"
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/api/routes"
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/config"
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/repository"
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/services"
+	shared_utils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
+	shared_metrics "github.com/gmsas95/blytz-mvp/shared/pkg/metrics"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/api/handlers"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/api/routes"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/config"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/repository"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/services"
 )
 
 func main() {
@@ -70,7 +70,7 @@ func main() {
 	router := gin.Default()
 
 	// CORS middleware using shared package
-	router.Use(shared_utils.CORSMiddleware())
+	router.Use(shared_utils.RequestIDMiddleware())
 
 	// Metrics middleware
 	router.Use(shared_metrics.MetricsMiddleware("search-service"))

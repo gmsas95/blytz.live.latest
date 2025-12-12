@@ -10,6 +10,7 @@ use (
 	./services/notification-service
 	./services/order-service
 	./services/product-service
+	./services/search-service
 	./services/stripe-service
 	./shared
 )

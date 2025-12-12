@@ -9,10 +9,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/config"
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/models"
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/repository"
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/services"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/config"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/models"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/repository"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/services"
 )
 
 // Performance test constants

@@ -15,12 +15,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/api/handlers"
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/config"
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/models"
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/repository"
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/services"
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/api/routes"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/api/handlers"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/config"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/models"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/repository"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/services"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/api/routes"
 )
 
 type SearchIntegrationTestSuite struct {

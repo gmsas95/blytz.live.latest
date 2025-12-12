@@ -5,10 +5,10 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/models"
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/services"
-	shared_errors "github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
-	shared_utils "github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/models"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/services"
+	shared_errors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
+	shared_utils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
 )
 
 type SearchHandler struct {

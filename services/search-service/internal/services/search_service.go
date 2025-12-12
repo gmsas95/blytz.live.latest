@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/models"
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/repository"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/models"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/repository"
 	"go.uber.org/zap"
 )
 

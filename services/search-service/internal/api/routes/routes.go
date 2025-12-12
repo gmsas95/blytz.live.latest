@@ -2,15 +2,15 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/gmsas95/blytz.live.latest/services/search-service/internal/api/handlers"
-	shared_middleware "github.com/gmsas95/blytz.live.latest/shared/pkg/middleware"
+	"github.com/gmsas95/blytz-mvp/services/search-service/internal/api/handlers"
+	shared_utils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
 )
 
 // SetupRoutes configures all API routes for the search service
 func SetupRoutes(router *gin.Engine, searchHandler *handlers.SearchHandler) {
 	// Apply global middleware
-	router.Use(shared_middleware.RequestID())
-	router.Use(shared_middleware.Logger())
+	router.Use(shared_utils.RequestIDMiddleware())
+	router.Use(shared_utils.LoggingMiddleware(nil))
 	router.Use(gin.Recovery())
 
 	// API versioning
@@ -49,5 +49,5 @@ func SetupRoutes(router *gin.Engine, searchHandler *handlers.SearchHandler) {
 	router.GET("/status", searchHandler.GetIndexStatus) // Service status
 
 	// Metrics endpoint (for Prometheus)
-	router.GET("/metrics", shared_middleware.PrometheusHandler())
+	router.GET("/metrics", shared_utils.SendJSON)
 }
