@@ -6,10 +6,16 @@ WORKDIR /app
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates tzdata
 
-# Copy the entire repository for shared packages
-COPY . .
+# Copy go.mod and go.sum
+COPY services/search-service/go.mod services/search-service/go.sum* ./
 
-# Build the application
+# Copy shared package
+COPY shared/ ./shared/
+
+# Copy service source code
+COPY services/search-service/ ./
+
+# Build application directly (without workspace mode)
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o search-service .
 
 # Final stage

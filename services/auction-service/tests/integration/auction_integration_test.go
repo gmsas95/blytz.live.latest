@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/models"
+	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/models"
 )
 
 const (

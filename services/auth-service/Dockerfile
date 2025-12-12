@@ -3,8 +3,17 @@ FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
-# Copy the entire repository for shared packages
-COPY . .
+# Copy go.mod and go.sum
+COPY services/auth-service/go.mod services/auth-service/go.sum ./
+
+# Copy shared package
+COPY shared/ ./shared/
+
+# Copy service source code
+COPY services/auth-service/ ./
+
+# Download dependencies
+RUN go mod download
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o auth-service .

@@ -11,6 +11,7 @@ type Config struct {
 	DatabaseURL string
 	Environment string
 	LogLevel    string
+	Port        string
 }
 
 func LoadConfig() *Config {
@@ -18,6 +19,7 @@ func LoadConfig() *Config {
 		DatabaseURL: getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/chat_db"),
 		Environment: getEnv("ENVIRONMENT", "development"),
 		LogLevel:    getEnv("LOG_LEVEL", "info"),
+		Port:        getEnv("PORT", "8090"),
 	}
 }
 

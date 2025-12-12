@@ -40,7 +40,7 @@ func (c *AuthClient) ValidateToken(ctx context.Context, tokenString string) (*Us
 	claims, err := c.jwtConfig.ValidateToken(tokenString)
 	if err != nil {
 		c.logger.Warn("JWT validation failed",
-			zap.String("token", tokenString[:min(len(tokenString), 20)+"..."),
+			zap.String("token", tokenString[:min(len(tokenString), 20)]+"..."),
 			zap.Error(err))
 		return nil, fmt.Errorf("invalid token: %w", err)
 	}

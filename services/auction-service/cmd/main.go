@@ -17,13 +17,13 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/gmsas95/blytz-mvp/shared/pkg/auth"
-	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/api/handlers"
-	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/config"
-	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/models"
-	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/repository"
-	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/services"
-	"github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
-	"github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
+	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/api/handlers"
+	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/config"
+	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/models"
+	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/repository"
+	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/services"
+	"github.com/gmsas95/blytz-mvp/shared/pkg/errors"
+	"github.com/gmsas95/blytz-mvp/shared/pkg/utils"
 )
 
 func main() {

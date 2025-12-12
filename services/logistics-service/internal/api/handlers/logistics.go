@@ -6,10 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/gmsas95/blytz.live.latest/services/logistics-service/internal/models"
-	"github.com/gmsas95/blytz.live.latest/services/logistics-service/internal/services"
-	"github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
-	"github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
+	"github.com/gmsas95/blytz-mvp/services/logistics-service/internal/models"
+	"github.com/gmsas95/blytz-mvp/services/logistics-service/internal/services"
+	"github.com/gmsas95/blytz-mvp/shared/pkg/errors"
+	"github.com/gmsas95/blytz-mvp/shared/pkg/utils"
 )
 
 type LogisticsHandler struct {
@@ -63,7 +63,7 @@ func (h *LogisticsHandler) GetShipment(c *gin.Context) {
 
 	shipment, err := h.logisticsService.GetShipment(c.Request.Context(), shipmentID, userID)
 	if err != nil {
-		if appErr, ok := errors.IsAppError(err); ok && appErr.Type == errors.NotFoundError {
+		if appErr, ok := errors.IsAppError(err); ok && appErr.Type == "NOT_FOUND_ERROR" {
 			utils.SendErrorResponse(c, err)
 			return
 		}
@@ -97,7 +97,7 @@ func (h *LogisticsHandler) UpdateShipmentStatus(c *gin.Context) {
 
 	shipment, err := h.logisticsService.UpdateShipmentStatus(c.Request.Context(), shipmentID, userID, models.ShipmentStatus(req.Status))
 	if err != nil {
-		if appErr, ok := errors.IsAppError(err); ok && appErr.Type == errors.NotFoundError {
+		if appErr, ok := errors.IsAppError(err); ok && appErr.Type == "NOT_FOUND_ERROR" {
 			utils.SendErrorResponse(c, err)
 			return
 		}
@@ -125,7 +125,7 @@ func (h *LogisticsHandler) GetShipmentByOrder(c *gin.Context) {
 
 	shipment, err := h.logisticsService.GetShipmentByOrder(c.Request.Context(), orderID, userID)
 	if err != nil {
-		if appErr, ok := errors.IsAppError(err); ok && appErr.Type == errors.NotFoundError {
+		if appErr, ok := errors.IsAppError(err); ok && appErr.Type == "NOT_FOUND_ERROR" {
 			utils.SendErrorResponse(c, err)
 			return
 		}
@@ -147,7 +147,7 @@ func (h *LogisticsHandler) TrackShipment(c *gin.Context) {
 
 	shipment, events, err := h.logisticsService.TrackShipment(c.Request.Context(), trackingNumber)
 	if err != nil {
-		if appErr, ok := errors.IsAppError(err); ok && appErr.Type == errors.NotFoundError {
+		if appErr, ok := errors.IsAppError(err); ok && appErr.Type == "NOT_FOUND_ERROR" {
 			utils.SendErrorResponse(c, err)
 			return
 		}

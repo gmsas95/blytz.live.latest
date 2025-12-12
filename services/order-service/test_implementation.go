@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/gmsas95/blytz.live.latest/services/order-service/internal/models"
+	"github.com/gmsas95/blytz-mvp/services/order-service/internal/models"
 )
 
 func main() {

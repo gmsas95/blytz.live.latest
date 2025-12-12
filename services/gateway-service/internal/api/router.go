@@ -240,7 +240,7 @@ func SetupRouter(logger *zap.Logger) *gin.Engine {
 		// Auth service routes - forward to /api/auth instead of /api/v1/auth
 		auth := v1.Group("/auth")
 		{
-			createAuthProxyRoutes(auth, "http://auth-service:8084", logger)
+			createAuthProxyRoutes(auth, "http://auth-service:8085", logger)
 		}
 
 			// Product service routes

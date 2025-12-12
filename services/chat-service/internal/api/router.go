@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gmsas95/blytz.live.latest/services/chat-service/internal/api/handlers"
-	"github.com/gmsas95/blytz.live.latest/services/chat-service/internal/config"
-	"github.com/gmsas95/blytz.live.latest/services/chat-service/internal/services"
-	"github.com/gmsas95/blytz.live.latest/shared/pkg/auth"
+	"github.com/gmsas95/blytz-mvp/services/chat-service/internal/api/handlers"
+	"github.com/gmsas95/blytz-mvp/services/chat-service/internal/config"
+	"github.com/gmsas95/blytz-mvp/services/chat-service/internal/services"
+	"github.com/gmsas95/blytz-mvp/shared/pkg/auth"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )

@@ -9,9 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/gmsas95/blytz.live.latest/services/chat-service/internal/models"
-	sharedErrors "github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
-	sharedUtils "github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
+	"github.com/gmsas95/blytz-mvp/services/chat-service/internal/models"
+	sharedErrors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
+	sharedUtils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
 )
 
 // MockChatService interface for our mock implementation

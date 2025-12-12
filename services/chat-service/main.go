@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"github.com/gmsas95/blytz.live.latest/services/chat-service/internal/api"
-	"github.com/gmsas95/blytz.live.latest/services/chat-service/internal/config"
+	"github.com/gmsas95/blytz-mvp/services/chat-service/internal/api"
+	"github.com/gmsas95/blytz-mvp/services/chat-service/internal/config"
 	"go.uber.org/zap"
 )
 

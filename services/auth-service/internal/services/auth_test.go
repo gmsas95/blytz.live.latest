@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/models"
+	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/models"
 )
 
 func setupMockDB(t *testing.T) (*AuthService, sqlmock.Sqlmock) {

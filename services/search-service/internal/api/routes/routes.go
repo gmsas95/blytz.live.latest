@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gmsas95/blytz-mvp/services/search-service/internal/api/handlers"
 	shared_utils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
@@ -49,5 +51,16 @@ func SetupRoutes(router *gin.Engine, searchHandler *handlers.SearchHandler) {
 	router.GET("/status", searchHandler.GetIndexStatus) // Service status
 
 	// Metrics endpoint (for Prometheus)
-	router.GET("/metrics", shared_utils.SendJSON)
+	router.GET("/metrics", func(c *gin.Context) {
+		// Return basic metrics for now
+		shared_utils.SendJSON(c, http.StatusOK, gin.H{
+			"service": "search-service",
+			"status":  "running",
+			"metrics": gin.H{
+				"uptime": "unknown",
+				"requests": "unknown",
+				"errors": "unknown",
+			},
+		})
+	})
 }

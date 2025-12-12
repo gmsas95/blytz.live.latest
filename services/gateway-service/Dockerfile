@@ -7,14 +7,17 @@ RUN apk add --no-cache git ca-certificates
 # Set working directory
 WORKDIR /app
 
-# Copy go mod files
-COPY go.mod go.sum ./
+# Copy go.mod and go.sum
+COPY services/gateway-service/go.mod services/gateway-service/go.sum ./
+
+# Copy shared package
+COPY shared/ ./shared/
+
+# Copy service source code
+COPY services/gateway-service/ ./
 
 # Download dependencies
 RUN go mod download
-
-# Copy source code
-COPY . .
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o gateway .

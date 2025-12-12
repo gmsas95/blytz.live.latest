@@ -2,9 +2,9 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/api/handlers"
-	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/middleware"
-	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/services"
+	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/api/handlers"
+	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/middleware"
+	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/services"
 )
 
 func SetupRoutes(router *gin.Engine, authHandler *handlers.AuthHandler, authService *services.AuthService) {

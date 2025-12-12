@@ -1,10 +1,10 @@
-module github.com/gmsas95/blytz.live.latest/services/auction-service
+module github.com/gmsas95/blytz-mvp/services/auction-service
 
 go 1.25
 
 require (
 	github.com/gin-gonic/gin v1.10.0
-	github.com/gmsas95/blytz.live.latest/shared v0.0.0-00010101000000-000000000000
+	github.com/gmsas95/blytz-mvp/shared v0.0.0-20251106051210-0c0bed4a93a5
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
@@ -24,25 +24,24 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 )
 
-replace github.com/gmsas95/blytz.live.latest/shared => ../../shared
+replace github.com/gmsas95/blytz-mvp/shared => ./shared
 
 require (
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
-	github.com/gmsas95/blytz-mvp/shared v0.0.0-20251106051210-0c0bed4a93a5 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.20.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
+	github.com/kr/pretty v0.3.1 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.22 // indirect

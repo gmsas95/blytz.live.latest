@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"time"
 
@@ -13,8 +12,6 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
-	shared_utils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
-	shared_metrics "github.com/gmsas95/blytz-mvp/shared/pkg/metrics"
 	"github.com/gmsas95/blytz-mvp/services/search-service/internal/api/handlers"
 	"github.com/gmsas95/blytz-mvp/services/search-service/internal/api/routes"
 	"github.com/gmsas95/blytz-mvp/services/search-service/internal/config"
@@ -29,7 +26,7 @@ func main() {
 	}
 
 	// Initialize logger
-	logger, err := shared_utils.NewDevelopmentLogger()
+	logger, err := zap.NewDevelopment()
 	if err != nil {
 		log.Fatalf("Failed to create logger: %v", err)
 	}
@@ -69,18 +66,33 @@ func main() {
 	// Setup Gin router
 	router := gin.Default()
 
-	// CORS middleware using shared package
-	router.Use(shared_utils.RequestIDMiddleware())
+	// Add CORS middleware
+	router.Use(func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+		
+		c.Next()
+	})
 
-	// Metrics middleware
-	router.Use(shared_metrics.MetricsMiddleware("search-service"))
+	// Add request ID middleware
+	router.Use(func(c *gin.Context) {
+		requestID := c.GetHeader("X-Request-ID")
+		if requestID == "" {
+			requestID = fmt.Sprintf("req-%d", time.Now().UnixNano())
+		}
+		c.Set("requestID", requestID)
+		c.Header("X-Request-ID", requestID)
+		c.Next()
+	})
 
 	// Setup routes
 	routes.SetupRoutes(router, searchHandler)
-
-	// Set build info and start time
-	shared_metrics.SetBuildInfo("v1.0.0", "unknown", time.Now().Format(time.RFC3339))
-	shared_metrics.SetStartTime(float64(time.Now().Unix()))
 
 	// Start server
 	port := getEnv("PORT", "8095")

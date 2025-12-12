@@ -36,8 +36,10 @@ func (s *SearchService) Search(ctx context.Context, query *models.SearchQuery) (
 
 	// Try to get from cache first
 	if cached, err := s.getFromCache(ctx, cacheKey); err == nil && cached != nil {
-		s.logger.Debug("Search result served from cache", zap.String("query", query.Query))
-		return cached, nil
+		if typed, ok := cached.(*models.SearchResponse); ok {
+			s.logger.Debug("Search result served from cache", zap.String("query", query.Query))
+			return typed, nil
+		}
 	}
 
 	// Perform search

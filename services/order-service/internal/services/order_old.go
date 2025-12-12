@@ -8,9 +8,9 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"github.com/gmsas95/blytz.live.latest/services/order-service/internal/config"
-	"github.com/gmsas95/blytz.live.latest/services/order-service/internal/models"
-	"github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
+	"github.com/gmsas95/blytz-mvp/services/order-service/internal/config"
+	"github.com/gmsas95/blytz-mvp/services/order-service/internal/models"
+	"github.com/gmsas95/blytz-mvp/shared/pkg/errors"
 )
 
 type OrderService struct {

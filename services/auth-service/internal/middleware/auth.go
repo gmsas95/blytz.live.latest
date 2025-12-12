@@ -10,9 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/services"
-	shared_errors "github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
-	"github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
+	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/services"
+	shared_errors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
+	"github.com/gmsas95/blytz-mvp/shared/pkg/utils"
 )
 
 func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {

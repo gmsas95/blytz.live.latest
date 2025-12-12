@@ -3,8 +3,17 @@ FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
-# Copy the entire repository
-COPY . .
+# Copy go.mod and go.sum
+COPY services/livekit-service/go.mod services/livekit-service/go.sum ./
+
+# Copy shared package
+COPY shared/ ./shared/
+
+# Copy service source code
+COPY services/livekit-service/ ./
+
+# Download dependencies
+RUN go mod download
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .

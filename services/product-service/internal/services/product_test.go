@@ -10,8 +10,8 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
-	"github.com/gmsas95/blytz.live.latest/services/product-service/internal/config"
-	"github.com/gmsas95/blytz.live.latest/services/product-service/internal/models"
+	"github.com/gmsas95/blytz-mvp/services/product-service/internal/config"
+	"github.com/gmsas95/blytz-mvp/services/product-service/internal/models"
 )
 
 // MockProductRepository for testing

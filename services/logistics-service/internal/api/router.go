@@ -5,11 +5,11 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gmsas95/blytz.live.latest/services/logistics-service/internal/api/handlers"
-	"github.com/gmsas95/blytz.live.latest/services/logistics-service/internal/config"
-	"github.com/gmsas95/blytz.live.latest/services/logistics-service/internal/services"
-	"github.com/gmsas95/blytz.live.latest/shared/pkg/auth"
-	"github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
+	"github.com/gmsas95/blytz-mvp/services/logistics-service/internal/api/handlers"
+	"github.com/gmsas95/blytz-mvp/services/logistics-service/internal/config"
+	"github.com/gmsas95/blytz-mvp/services/logistics-service/internal/services"
+	"github.com/gmsas95/blytz-mvp/shared/pkg/auth"
+	"github.com/gmsas95/blytz-mvp/shared/pkg/utils"
 	"go.uber.org/zap"
 )
 
@@ -18,11 +18,12 @@ func SetupRouter(logger *zap.Logger) *gin.Engine {
 	cfg := config.LoadConfig()
 
 	// Initialize structured logger
-	structuredLogger, err := utils.NewStructuredLogger(utils.LoggerConfig{
-		Service:     "logistics-service",
-		Environment: cfg.Environment,
-		Level:       cfg.LogLevel,
-	})
+	var err error
+	if cfg.Environment == "production" {
+		_, err = utils.NewProductionLogger()
+	} else {
+		_, err = utils.NewDevelopmentLogger()
+	}
 	if err != nil {
 		logger.Fatal("Failed to initialize structured logger", zap.Error(err))
 	}
@@ -42,8 +43,8 @@ func SetupRouter(logger *zap.Logger) *gin.Engine {
 	// Create router
 	router := gin.Default()
 
-	// Add correlation ID middleware for structured logging
-	router.Use(utils.CorrelationMiddleware(structuredLogger))
+	// Add request ID middleware for structured logging
+	router.Use(utils.RequestIDMiddleware())
 
 	// Initialize auth client
 	authClient := auth.NewAuthClient("http://auth-service:8084")
@@ -56,7 +57,7 @@ func SetupRouter(logger *zap.Logger) *gin.Engine {
 	router.GET("/health", func(c *gin.Context) {
 		correlationID := c.GetHeader("X-Correlation-ID")
 		if correlationID == "" {
-			correlationID = c.GetString("correlation_id")
+			correlationID = c.GetString("request_id")
 		}
 
 		health := gin.H{

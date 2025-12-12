@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/models"
+	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/models"
 )
 
 // DBTX is an interface that can represent either a *sql.DB or a *sql.Tx

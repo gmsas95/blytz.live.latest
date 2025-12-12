@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gmsas95/blytz-mvp/services/search-service/internal/models"
@@ -237,7 +238,7 @@ func (h *SearchHandler) Health(c *gin.Context) {
 		"service":   "search-service",
 		"status":    "healthy",
 		"cache":     stats["cache"],
-		"timestamp":  shared_utils.GetCurrentTimestamp(),
+		"timestamp":  time.Now().Format(time.RFC3339),
 	})
 }
 

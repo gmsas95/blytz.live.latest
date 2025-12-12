@@ -16,10 +16,10 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/gmsas95/blytz.live.latest/services/chat-service/internal/api/handlers"
-	"github.com/gmsas95/blytz.live.latest/services/chat-service/internal/models"
-	"github.com/gmsas95/blytz.live.latest/services/chat-service/internal/services"
-	sharedUtils "github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
+	"github.com/gmsas95/blytz-mvp/services/chat-service/internal/api/handlers"
+	"github.com/gmsas95/blytz-mvp/services/chat-service/internal/models"
+	"github.com/gmsas95/blytz-mvp/services/chat-service/internal/services"
+	sharedUtils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
 )
 
 // WebSocket upgrader

@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/models"
+	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/models"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 

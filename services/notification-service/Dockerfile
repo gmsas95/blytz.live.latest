@@ -2,14 +2,17 @@ FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
-# Copy go mod and sum files
-COPY go.mod go.sum ./
+# Copy go.mod and go.sum
+COPY services/notification-service/go.mod services/notification-service/go.sum ./
+
+# Copy shared package
+COPY shared/ ./shared/
+
+# Copy service source code
+COPY services/notification-service/ ./
 
 # Download dependencies
 RUN go mod download
-
-# Copy source code
-COPY . .
 
 # Build the application
 RUN go build -o notification-service .

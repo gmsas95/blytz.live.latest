@@ -16,9 +16,9 @@ import (
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 
-	shared_utils "github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
-	shared_errors "github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
-	"github.com/gmsas95/blytz.live.latest/services/product-service/internal/models"
+	shared_utils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
+	shared_errors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
+	"github.com/gmsas95/blytz-mvp/services/product-service/internal/models"
 )
 
 // ProductService handles product business logic

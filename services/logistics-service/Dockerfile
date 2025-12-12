@@ -3,8 +3,20 @@ FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 
-# Copy the entire repository
-COPY . .
+# Copy go.mod and go.sum
+COPY services/logistics-service/go.mod services/logistics-service/go.sum ./
+
+# Copy service source code
+COPY services/logistics-service/ ./
+
+# Copy shared package to correct location for replace directive
+COPY ../shared/ ../shared/
+
+# Download dependencies
+RUN go mod download
+
+# Update go.sum with shared package dependencies
+RUN go mod tidy
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o logistics-service .

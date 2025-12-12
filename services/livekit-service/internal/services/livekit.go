@@ -10,8 +10,8 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	shared_errors "github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
-	"github.com/gmsas95/blytz.live.latest/services/livekit-service/internal/models"
+	shared_errors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
+	"github.com/gmsas95/blytz-mvp/services/livekit-service/internal/models"
 )
 
 // LiveKitService handles LiveKit integration

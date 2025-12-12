@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"go.uber.org/zap"
-	firebase "github.com/gmsas95/blytz.live.latest/services/auction-service/pkg/firebase"
+	firebase "github.com/gmsas95/blytz-mvp/services/auction-service/pkg/firebase"
 )
 
 // Example: How to integrate Firebase with your auction service

@@ -13,13 +13,13 @@ import (
 	"github.com/joho/godotenv"
 	"go.uber.org/zap"
 
-	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/api/handlers"
-	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/config"
-	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/middleware"
-	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/services"
-	shared_metrics "github.com/gmsas95/blytz.live.latest/shared/pkg/metrics"
-	"github.com/gmsas95/blytz.live.latest/shared/pkg/ratelimiter"
-	shared_utils "github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
+	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/api/handlers"
+	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/config"
+	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/middleware"
+	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/services"
+	shared_metrics "github.com/gmsas95/blytz-mvp/shared/pkg/metrics"
+	"github.com/gmsas95/blytz-mvp/shared/pkg/ratelimiter"
+	shared_utils "github.com/gmsas95/blytz-mvp/shared/pkg/utils"
 )
 
 func main() {

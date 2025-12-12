@@ -7,11 +7,11 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/middleware"
-	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/models"
-	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/services"
-	shared_errors "github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
-	"github.com/gmsas95/blytz.live.latest/shared/pkg/utils"
+	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/middleware"
+	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/models"
+	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/services"
+	shared_errors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
+	"github.com/gmsas95/blytz-mvp/shared/pkg/utils"
 )
 
 type AuthHandler struct {

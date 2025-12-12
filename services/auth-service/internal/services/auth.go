@@ -13,9 +13,9 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
-	shared_errors "github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
-	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/models"
-	"github.com/gmsas95/blytz.live.latest/services/auth-service/internal/repository"
+	shared_errors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
+	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/models"
+	"github.com/gmsas95/blytz-mvp/services/auth-service/internal/repository"
 )
 
 type AuthService struct {

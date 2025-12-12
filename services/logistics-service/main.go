@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/gmsas95/blytz.live.latest/services/logistics-service/internal/api"
+	"github.com/gmsas95/blytz-mvp/services/logistics-service/internal/api"
 	"go.uber.org/zap"
 )
 

@@ -8,8 +8,8 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"github.com/gmsas95/blytz.live.latest/services/chat-service/internal/models"
-	sharedErrors "github.com/gmsas95/blytz.live.latest/shared/pkg/errors"
+	"github.com/gmsas95/blytz-mvp/services/chat-service/internal/models"
+	sharedErrors "github.com/gmsas95/blytz-mvp/shared/pkg/errors"
 )
 
 type ChatService struct {

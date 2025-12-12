@@ -8,8 +8,8 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
-	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/models"
-	"github.com/gmsas95/blytz.live.latest/services/auction-service/internal/repository"
+	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/models"
+	"github.com/gmsas95/blytz-mvp/services/auction-service/internal/repository"
 )
 
 type AuctionService struct {
