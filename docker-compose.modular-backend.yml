@@ -1,5 +1,3 @@
-version: '3.8'
-
 # Modular Backend Services for 2C8GB VPS
 # Each service can be deployed individually
 
@@ -89,7 +87,135 @@ services:
       - LOG_LEVEL=error
       - PORT=8087
       - JWT_SECRET=vps_jwt_secret_minimum_32_bytes
-      - AUTH_SERVICE_URL=http://localhost:8085
+      - AUTH_SERVICE_URL=http://auth-service:8085
+    depends_on:
+      - postgres
+    deploy:
+      resources:
+        limits:
+          memory: 96M
+          cpus: '0.3'
+        reservations:
+          memory: 48M
+          cpus: '0.15'
+    restart: unless-stopped
+
+  order-service:
+    image: gmsas95/blytz-live-services:order-service
+    ports:
+      - "8088:8088"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db?sslmode=disable
+      - ENVIRONMENT=production
+      - LOG_LEVEL=error
+      - PORT=8088
+    depends_on:
+      - postgres
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.2'
+        reservations:
+          memory: 32M
+          cpus: '0.1'
+    restart: unless-stopped
+
+  payment-service:
+    image: gmsas95/blytz-live-services:payment-service
+    ports:
+      - "8089:8089"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db?sslmode=disable
+      - ENVIRONMENT=production
+      - LOG_LEVEL=error
+      - PORT=8089
+      - STRIPE_SECRET_KEY=sk_test_example
+      - STRIPE_WEBHOOK_SECRET=whsec_example
+    depends_on:
+      - postgres
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.2'
+        reservations:
+          memory: 32M
+          cpus: '0.1'
+    restart: unless-stopped
+
+  chat-service:
+    image: gmsas95/blytz-live-services:chat-service
+    ports:
+      - "8090:8090"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db?sslmode=disable&max_conns=5&max_idle_conns=2
+      - ENVIRONMENT=production
+      - LOG_LEVEL=error
+      - PORT=8090
+    depends_on:
+      - postgres
+    deploy:
+      resources:
+        limits:
+          memory: 96M
+          cpus: '0.3'
+        reservations:
+          memory: 48M
+          cpus: '0.15'
+    restart: unless-stopped
+
+  logistics-service:
+    image: gmsas95/blytz-live-services:logistics-service
+    ports:
+      - "8091:8091"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db?sslmode=disable
+      - ENVIRONMENT=production
+      - LOG_LEVEL=error
+      - PORT=8091
+    depends_on:
+      - postgres
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.2'
+        reservations:
+          memory: 32M
+          cpus: '0.1'
+    restart: unless-stopped
+
+  search-service:
+    image: gmsas95/blytz-live-services:search-service
+    ports:
+      - "8095:8095"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db?sslmode=disable&max_conns=5&max_idle_conns=2
+      - ENVIRONMENT=production
+      - LOG_LEVEL=error
+      - PORT=8095
+    depends_on:
+      - postgres
+    deploy:
+      resources:
+        limits:
+          memory: 96M
+          cpus: '0.3'
+        reservations:
+          memory: 48M
+          cpus: '0.15'
+    restart: unless-stopped
+
+  notification-service:
+    image: gmsas95/blytz-live-services:notification-service
+    ports:
+      - "8094:8094"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db?sslmode=disable&max_conns=5&max_idle_conns=2
+      - ENVIRONMENT=production
+      - LOG_LEVEL=error
+      - PORT=8094
     depends_on:
       - postgres
     deploy:
@@ -110,15 +236,15 @@ services:
       - ENVIRONMENT=production
       - LOG_LEVEL=error
       - PORT=8092
-      - AUTH_SERVICE_URL=http://localhost:8085
-      - PRODUCT_SERVICE_URL=http://localhost:8086
-      - AUCTION_SERVICE_URL=http://localhost:8087
-      - ORDER_SERVICE_URL=http://localhost:8088
-      - PAYMENT_SERVICE_URL=http://localhost:8089
-      - LOGISTICS_SERVICE_URL=http://localhost:8091
-      - CHAT_SERVICE_URL=http://localhost:8090
-      - SEARCH_SERVICE_URL=http://localhost:8095
-      - NOTIFICATION_SERVICE_URL=http://localhost:8094
+      - AUTH_SERVICE_URL=http://auth-service:8085
+      - PRODUCT_SERVICE_URL=http://product-service:8086
+      - AUCTION_SERVICE_URL=http://auction-service:8087
+      - ORDER_SERVICE_URL=http://order-service:8088
+      - PAYMENT_SERVICE_URL=http://payment-service:8089
+      - LOGISTICS_SERVICE_URL=http://logistics-service:8091
+      - CHAT_SERVICE_URL=http://chat-service:8090
+      - SEARCH_SERVICE_URL=http://search-service:8095
+      - NOTIFICATION_SERVICE_URL=http://notification-service:8094
       - JWT_SECRET=gateway_jwt_secret_minimum_32_bytes
     depends_on:
       - auth-service
