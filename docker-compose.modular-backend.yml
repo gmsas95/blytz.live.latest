@@ -1,0 +1,144 @@
+version: '3.8'
+
+# Modular Backend Services for 2C8GB VPS
+# Each service can be deployed individually
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: blytz_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      # VPS memory optimizations
+      POSTGRES_SHARED_PRELOAD_LIBRARIES: 'on'
+      POSTGRES_SHARED_BUFFERS: '8MB'
+      POSTGRES_WORK_MEM: '1MB'
+      POSTGRES_MAINTENANCE_WORK_MEM: '4MB'
+      POSTGRES_EFFECTIVE_CACHE_SIZE: '16MB'
+      # Connection limits for VPS
+      POSTGRES_MAX_CONNECTIONS: '10'
+      POSTGRES_MAX_PREPARED_TRANSACTIONS: '0'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 128M  # Only 128MB RAM
+          cpus: '0.25'
+        reservations:
+          memory: 64M   # Reserved RAM
+          cpus: '0.125'
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d blytz_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  auth-service:
+    image: gmsas95/blytz-live-services:auth-service
+    ports:
+      - "8085:8085"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db?sslmode=disable&max_conns=5&max_idle_conns=2
+      - ENVIRONMENT=production
+      - LOG_LEVEL=error
+      - PORT=8085
+      - JWT_SECRET=vps_jwt_secret_minimum_32_bytes
+    depends_on:
+      - postgres
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.2'
+        reservations:
+          memory: 32M
+          cpus: '0.1'
+    restart: unless-stopped
+
+  product-service:
+    image: gmsas95/blytz-live-services:product-service
+    ports:
+      - "8086:8086"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db?sslmode=disable
+      - ENVIRONMENT=production
+      - LOG_LEVEL=error
+      - PORT=8086
+    depends_on:
+      - postgres
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: '0.2'
+        reservations:
+          memory: 32M
+          cpus: '0.1'
+    restart: unless-stopped
+
+  auction-service:
+    image: gmsas95/blytz-live-services:auction-service
+    ports:
+      - "8087:8087"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/blytz_db?sslmode=disable&max_conns=5&max_idle_conns=2
+      - ENVIRONMENT=production
+      - LOG_LEVEL=error
+      - PORT=8087
+      - JWT_SECRET=vps_jwt_secret_minimum_32_bytes
+      - AUTH_SERVICE_URL=http://localhost:8085
+    depends_on:
+      - postgres
+    deploy:
+      resources:
+        limits:
+          memory: 96M
+          cpus: '0.3'
+        reservations:
+          memory: 48M
+          cpus: '0.15'
+    restart: unless-stopped
+
+  gateway:
+    image: gmsas95/blytz-live-services:gateway-service
+    ports:
+      - "8092:8092"
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=error
+      - PORT=8092
+      - AUTH_SERVICE_URL=http://localhost:8085
+      - PRODUCT_SERVICE_URL=http://localhost:8086
+      - AUCTION_SERVICE_URL=http://localhost:8087
+      - ORDER_SERVICE_URL=http://localhost:8088
+      - PAYMENT_SERVICE_URL=http://localhost:8089
+      - LOGISTICS_SERVICE_URL=http://localhost:8091
+      - CHAT_SERVICE_URL=http://localhost:8090
+      - SEARCH_SERVICE_URL=http://localhost:8095
+      - NOTIFICATION_SERVICE_URL=http://localhost:8094
+      - JWT_SECRET=gateway_jwt_secret_minimum_32_bytes
+    depends_on:
+      - auth-service
+      - product-service
+      - auction-service
+      - order-service
+      - payment-service
+      - chat-service
+      - logistics-service
+      - search-service
+      - notification-service
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.3'
+        reservations:
+          memory: 64M
+          cpus: '0.15'
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
