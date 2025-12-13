@@ -35,7 +35,9 @@ services:
       retries: 3
 
   auth-service:
-    image: gmsas95/blytz-live-services:auth-service
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
     ports:
       - "8085:8085"
     environment:
@@ -57,7 +59,9 @@ services:
     restart: unless-stopped
 
   product-service:
-    image: gmsas95/blytz-live-services:product-service
+    build:
+      context: ./services/product-service
+      dockerfile: Dockerfile
     ports:
       - "8086:8086"
     environment:
@@ -78,7 +82,9 @@ services:
     restart: unless-stopped
 
   auction-service:
-    image: gmsas95/blytz-live-services:auction-service
+    build:
+      context: ./services/auction-service
+      dockerfile: Dockerfile
     ports:
       - "8087:8087"
     environment:
@@ -101,7 +107,9 @@ services:
     restart: unless-stopped
 
   order-service:
-    image: gmsas95/blytz-live-services:order-service
+    build:
+      context: ./services/order-service
+      dockerfile: Dockerfile
     ports:
       - "8088:8088"
     environment:
@@ -122,7 +130,9 @@ services:
     restart: unless-stopped
 
   payment-service:
-    image: gmsas95/blytz-live-services:payment-service
+    build:
+      context: ./services/payment-service
+      dockerfile: Dockerfile
     ports:
       - "8089:8089"
     environment:
@@ -145,7 +155,9 @@ services:
     restart: unless-stopped
 
   chat-service:
-    image: gmsas95/blytz-live-services:chat-service
+    build:
+      context: ./services/chat-service
+      dockerfile: Dockerfile
     ports:
       - "8090:8090"
     environment:
@@ -166,7 +178,9 @@ services:
     restart: unless-stopped
 
   logistics-service:
-    image: gmsas95/blytz-live-services:logistics-service
+    build:
+      context: ./services/logistics-service
+      dockerfile: Dockerfile
     ports:
       - "8091:8091"
     environment:
@@ -187,7 +201,9 @@ services:
     restart: unless-stopped
 
   search-service:
-    image: gmsas95/blytz-live-services:search-service
+    build:
+      context: ./services/search-service
+      dockerfile: Dockerfile
     ports:
       - "8095:8095"
     environment:
@@ -208,7 +224,9 @@ services:
     restart: unless-stopped
 
   notification-service:
-    image: gmsas95/blytz-live-services:notification-service
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
     ports:
       - "8094:8094"
     environment:
@@ -229,7 +247,9 @@ services:
     restart: unless-stopped
 
   gateway:
-    image: gmsas95/blytz-live-services:gateway-service
+    build:
+      context: ./services/gateway-service
+      dockerfile: Dockerfile
     ports:
       - "8092:8092"
     environment:
