@@ -1,5 +1,4 @@
-# Blytz Live Auction Platform
-
+> ⚠️ **Archived — early prototype.** This was an early iteration of the Blytz Marketplace. Superseded by [blytz.app.go](https://github.com/gmsas95/blytz.app.go).\n\n
 A real-time livestream commerce platform built with Go microservices and modern web technologies.
 
 ## 🚀 Quick Start
